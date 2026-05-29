@@ -12,15 +12,6 @@ namespace MyApp
 {
     internal class Program
     {
-        static void Main(string[] args)
-        {
-            Host bot = new Host(GetBotToken("BOT_TOKEN"));
-            bot.Start();
-            bot.OnMessage += LoadVideoDataAsync;
-
-            Console.ReadLine();
-        }
-
         static string GetBotToken(string localVariableName)
         {
             var builder = new ConfigurationBuilder()
@@ -30,6 +21,20 @@ namespace MyApp
             var config = builder.Build();
             return config[localVariableName] ?? throw new NullReferenceException($"Not find a {localVariableName} key");
         }
+
+        static void Main(string[] args)
+        {
+            Host host = new Host(GetBotToken("BOT_TOKEN"), new ConsoleLogger());
+            YTDownloaderBot YTBot = new YTDownloaderBot(host, 
+                new YoutubeReciever(), 
+                new ConsoleLogger(), 
+                new TelegramLogger());
+
+            YTBot.Init(); // Bot recieving start
+
+            Console.ReadLine();
+        }
+
         
         private static async void LoadVideoDataAsync(ITelegramBotClient client, Update update)
         {

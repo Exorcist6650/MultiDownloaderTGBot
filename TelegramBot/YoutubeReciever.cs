@@ -33,9 +33,6 @@ namespace YoutubeConnect
 
     public class YoutubeReciever
     {
-        private readonly string PATH_TO_SAVE_VIDEO;
-
-
         private readonly YoutubeClient _youtube;
         public YoutubeReciever()
         {
@@ -49,10 +46,10 @@ namespace YoutubeConnect
                 var video = await _youtube.Videos.GetAsync(url); // URL
                 return new VideoInfo
                 {
-                    Title = video.Title,
-                    Channel = video.Author.ChannelTitle,
-                    Duration = video.Duration.Value,
-                    Description = video.Description,
+                    Title = video.Title ?? "",
+                    Channel = video?.Author?.ChannelTitle ?? "",
+                    Duration = video?.Duration.Value ?? TimeSpan.Zero,
+                    Description = video?.Description.Length > 100 ? video.Description.Substring(0, 100) : video.Description ?? "",
                 };
             }
             catch (PlaylistUnavailableException)
@@ -93,6 +90,5 @@ namespace YoutubeConnect
                 return null;
             }
         }
-        
     }
 }

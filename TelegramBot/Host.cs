@@ -7,12 +7,14 @@ namespace TelegramBot
     public class Host
     {
         public Action<ITelegramBotClient, Update>? OnMessage; // Event
-        private TelegramBotClient _bot; // Bot instance
+        private readonly TelegramBotClient _bot; // Bot instance
+        private readonly ConsoleLogger _consoleLogger;
 
         // Ctor
-        public Host(string token)
+        public Host(string token, ConsoleLogger consoleLogger)
         {
             _bot = new TelegramBotClient(token);
+            _consoleLogger = consoleLogger;
         }
 
         public void Start()
@@ -24,13 +26,21 @@ namespace TelegramBot
         // Handlers update methods
         private async Task UpdateHandler(ITelegramBotClient client, Update update, CancellationToken token)
         {
-            Console.WriteLine($"User message: {update.Message?.Text}\tUser id: {update.Message.Chat.Id}");
+            // Logging
+            string logText = $"User message: {update.Message?.Text}" +
+                $"\t Username: {update.Message.Chat.Username}" +
+                $"\t UserID: {update.Message.Chat.Id}";
+            _consoleLogger.Log(logText);
+
+            // Event calling
             OnMessage?.Invoke(client, update);
+
+
             await Task.CompletedTask;
         }
         private async Task ErrorHandler(ITelegramBotClient client, Exception exception, HandleErrorSource source, CancellationToken token)
         {
-            Console.WriteLine($"Exception: {exception.Message}");
+            _consoleLogger.Log(exception.Message, LogStatus.Error);
             await Task.CompletedTask;
         }
 
