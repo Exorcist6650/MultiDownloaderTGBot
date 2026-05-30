@@ -45,29 +45,16 @@ namespace TelegramBot
                 await _telegramLogger.Log("Send youtube video link", client, update.Message.Chat.Id);
                 return;
             }
+            client.DeleteMessage(update.Message.Chat.Id, update.Message.Id);
 
-            await Task.Delay(1000);
-            DeleteMessage(client, update.Message.Chat.Id, update.Message.Id); // Delete user message
 
-            // Bot loading message
-            var loadingBotMessage = await _telegramLogger.Log("Loading info...", client, update.Message.Chat.Id);
-
-            // Loading info
-            await SendPreviewInfo(client, update);
-
-            // Deleting bot loading message
-            await client.DeleteMessage(update.Message.Chat.Id, loadingBotMessage.MessageId);
+            // Loading and sending info
+            await LoadAndSendPreviewInfo(client, update);
         }
 
 
         // Functions
-
-        private void DeleteMessage(ITelegramBotClient client, ChatId chatID, int messageID)
-        {
-            client.DeleteMessage(chatID, messageID);
-        }
-
-        private async Task SendPreviewInfo(ITelegramBotClient client, Update update)
+        private async Task<bool> LoadAndSendPreviewInfo(ITelegramBotClient client, Update update)
         {
             // Get async video
             string url = update.Message.Text;
@@ -76,15 +63,11 @@ namespace TelegramBot
             VideoInfo? videoInfo = await _ytReciever.GetVideoInfoAsync(url);
             if (videoInfo != null)
             {
-
-                using var imageStream = await _ytReciever.GetVideoPreviewStreamAsync(url);
-                if (imageStream != null)
+                // Preview image stream
+                using var memoryStream = await _ytReciever.GetVideoPreviewStreamAsync(url);
+                if (memoryStream != null)
                 {
-                    // Image
-                    InputFile videoImage = InputFile.FromStream(imageStream);
-
-
-                    // Text aption
+                    // Text сaption
                     string textCaption =
                         $"{videoInfo?.Title}\n" +
                         $"Author: {videoInfo?.Channel}\n" +
@@ -93,17 +76,32 @@ namespace TelegramBot
                         "...";
 
                     // Sending to chat
-                    await client.SendPhoto(chatID, videoImage, textCaption);
-
+                    try
+                    {
+                        await client.SendPhoto(chatID, InputFile.FromStream(memoryStream), textCaption);
+                    }
+                    catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.ErrorCode == 403)
+                    {
+                        _consoleLogger.Log($"Exceprtion: {ex.Message}", LogStatus.Error);
+                    }
+                    catch (Exception ex)
+                    {
+                        _consoleLogger.Log($"Exceprtion: {ex.Message}", LogStatus.Error);
+                    }
+                    return true;
                 }
                 else
                 {
                     await _telegramLogger.Log("Preview download failed", client, chatID, LogStatus.Error);
                     _consoleLogger.Log("Preview stream failde", LogStatus.Error);
+                    return false;
                 }
             }
             else
+            {
                 await _telegramLogger.Log("It's not a link", client, chatID);
+                return false;
+            }
         }
     }
 }

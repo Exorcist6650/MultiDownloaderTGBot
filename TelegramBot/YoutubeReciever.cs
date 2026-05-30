@@ -34,6 +34,13 @@ namespace YoutubeConnect
     public class YoutubeReciever
     {
         private readonly YoutubeClient _youtube;
+        static private readonly HttpClient _httpClient;
+
+        static YoutubeReciever()
+        {
+            _httpClient = new HttpClient();
+        }
+
         public YoutubeReciever()
         {
             _youtube = new YoutubeClient();
@@ -66,7 +73,7 @@ namespace YoutubeConnect
             }
         }
 
-        public async Task<Stream?> GetVideoPreviewStreamAsync(string url)
+        public async Task<MemoryStream?> GetVideoPreviewStreamAsync(string url)
         {
             try
             {
@@ -74,8 +81,12 @@ namespace YoutubeConnect
                 var thumbnail = video.Thumbnails.GetWithHighestResolution();
 
                 // Creating stream thumbnail by url
-                using var http = new HttpClient();
-                return await http.GetStreamAsync(thumbnail.Url);
+                using var response = await _httpClient.GetAsync(thumbnail.Url, HttpCompletionOption.ResponseHeadersRead);
+                response.EnsureSuccessStatusCode();
+                var ms = new MemoryStream();
+                await response.Content.CopyToAsync(ms);
+                ms.Position = 0;
+                return ms;
             }
             catch (PlaylistUnavailableException)
             {

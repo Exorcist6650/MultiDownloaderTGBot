@@ -25,6 +25,8 @@ namespace MyApp
         static void Main(string[] args)
         {
             Host host = new Host(GetBotToken("BOT_TOKEN"), new ConsoleLogger());
+
+            // Bot instance
             YTDownloaderBot YTBot = new YTDownloaderBot(host, 
                 new YoutubeReciever(), 
                 new ConsoleLogger(), 

@@ -34,8 +34,6 @@ namespace TelegramBot
 
             // Event calling
             OnMessage?.Invoke(client, update);
-
-
             await Task.CompletedTask;
         }
         private async Task ErrorHandler(ITelegramBotClient client, Exception exception, HandleErrorSource source, CancellationToken token)
