@@ -1,15 +1,16 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using Telegram.Bot.Types;
-using YoutubeExplode;
-using YoutubeExplode.Exceptions;
-using YoutubeExplode.Common;
 using TelegramBot;
+using YoutubeExplode;
+using YoutubeExplode.Common;
+using YoutubeExplode.Exceptions;
 
 namespace YoutubeConnect
 {
@@ -22,7 +23,6 @@ namespace YoutubeConnect
         public TimeSpan Duration { get; set; }
 
         public string Description { get; set; }
-        public string Id { get; set; }
 
         public IEnumerator GetEnumerator()
         {
@@ -30,7 +30,6 @@ namespace YoutubeConnect
             yield return Channel;
             yield return Duration;
             yield return Description;
-            yield return Id;
         }
     }
 
@@ -60,9 +59,8 @@ namespace YoutubeConnect
                 {
                     Title = video.Title ?? "",
                     Channel = video?.Author?.ChannelTitle ?? "",
-                    Duration = video?.Duration.Value ?? TimeSpan.Zero,
-                    Description = video?.Description.Length > 100 ? video.Description.Substring(0, 100) : video.Description ?? "",
-                    Id = video.Id,
+                    Duration = video?.Duration ?? TimeSpan.Zero,
+                    Description = (video?.Description?.Length > 100) ? video.Description.Substring(0, 100) : (video?.Description ?? ""),
                 };
             }
             catch (PlaylistUnavailableException)
@@ -108,8 +106,17 @@ namespace YoutubeConnect
             }
         }
 
-        public async Task<FileStream?> GetVideoMuxedStreamAsync(string url)
+        /// <summary>
+        /// Load muxed video to temporary file
+        /// </summary>
+        /// <param name="url"></param>
+        /// <returns>
+        /// Path to loaded video
+        /// </returns>
+        public async Task<string?> LoadVideoMuxedStreamAsync(string url)
         {
+            // Temporary file path for downloading
+            var tempPath = Path.GetTempFileName();
             try
             {
                 // Get manifest 
@@ -119,21 +126,16 @@ namespace YoutubeConnect
 
                 if (streamInfo == null) return null;
 
-                // Temporary file for downloading initialization
-                var tempPath = Path.GetTempFileName();
 
                 // Downloading video
                 await _youtube.Videos.Streams.DownloadAsync(streamInfo, tempPath);
 
-                // Gave the stream
-                var fileStream = File.OpenRead(tempPath);
-                fileStream.Position = 0;
-
-                return fileStream;
+                return tempPath;
             }
             catch (Exception ex)
             {
                 _consoleLogger.Log(ex.Message, LogStatus.Error);
+                File.Delete(tempPath);
                 return null;
             }
         }
@@ -155,8 +157,8 @@ namespace YoutubeConnect
                 // Downloading video
                 await _youtube.Videos.Streams.DownloadAsync(audioStreamInfo, tempPath);
 
-                // Gave the stream
-                var fileStream = File.OpenRead(tempPath);
+                // Open file stream
+                var fileStream = new FileStream(tempPath, FileMode.Open, FileAccess.Read, FileShare.Read);
                 fileStream.Position = 0;
 
                 return fileStream;
