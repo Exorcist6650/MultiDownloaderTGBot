@@ -1,5 +1,4 @@
-﻿using TagLib;
-using Telegram.Bot;
+﻿using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 using YoutubeConnect;
@@ -258,6 +257,7 @@ namespace TelegramBot
 
             if (audioPath != null)
             {
+
                 // Open file stream
                 using var fileStream = new FileStream(audioPath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
@@ -268,11 +268,6 @@ namespace TelegramBot
                         // Loading video info 
                         var videoInfo = await _ytReciever.GetVideoInfoAsync(url);
 
-                        // Set audio cover
-                        var videoPreview = await _ytReciever.GetVideoPreviewStreamAsync(url);
-                        if (videoPreview != null)
-                            SetAudioCover(audioPath, videoPreview);
-                         
                         try
                         {
                             // Sending audio to chat
@@ -306,29 +301,6 @@ namespace TelegramBot
             // Deleting audio file
             if (System.IO.File.Exists(audioPath))
                 System.IO.File.Delete(audioPath);
-        }
-        private void SetAudioCover(string audioPath, MemoryStream streamCover)
-        {
-            if (System.IO.File.Exists(audioPath))
-            {
-
-                byte[] coverBytes;
-                coverBytes = streamCover.ToArray();
-
-
-                var tfile = TagLib.File.Create(audioPath);
-                tfile.Tag.Pictures =
-                [
-                    new Picture
-                {
-                    Type = PictureType.FrontCover,
-                    Description = "Cover",
-                    MimeType = "image/jpeg",
-                    Data = new ByteVector(coverBytes)
-                }
-                ];
-                tfile.Save();
-            }
         }
     }
 }

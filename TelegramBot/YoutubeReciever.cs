@@ -140,10 +140,17 @@ namespace YoutubeConnect
             }
         }
 
+        /// <summary>
+        /// Load audio to temporary file
+        /// </summary>
+        /// <param name="url"></param>
+        /// <returns>
+        /// Path to loaded video
+        /// </returns>
         public async Task<string?> LoadTempAudioAsync(string url)
         {
             // Temporary file path for downloading
-            var tempPath = Path.GetTempFileName();
+            var tempPath = Path.ChangeExtension(Path.GetTempFileName(), ".mp3");
             try
             {
                 // Get manifest 
