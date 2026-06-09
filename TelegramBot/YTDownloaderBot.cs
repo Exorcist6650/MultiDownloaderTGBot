@@ -39,7 +39,6 @@ namespace TelegramBot
                 new []
                 {
                     InlineKeyboardButton.WithCallbackData("Cancel", "action:cancel"),
-
                 },
             });
         }
