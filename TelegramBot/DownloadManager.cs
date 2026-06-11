@@ -2,9 +2,12 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
+using Xabe.FFmpeg;
+using Xabe.FFmpeg.Downloader;
 
 namespace TelegramBot
 {
@@ -30,9 +33,37 @@ namespace TelegramBot
 
             // Checking yt-dlp existing
             if (File.Exists(ytdlpPath))
+            {
                 _consoleLogger.Log("yt-dlp was found successfully");
+                FFmpegDownload(Path.Combine(Directory.GetCurrentDirectory(), "tools"));
+            }
             else
                 _consoleLogger.Log("yt-dlp does not exist in directory", LogStatus.Error);
+        }
+
+        private async void FFmpegDownload(string targetPath)
+        {
+            // Download ffmpeg to chache
+            await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official);
+
+            //// Chache directory path
+            //string chacheDirectory =
+            //    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Xabe.FFmpeg");
+            //if (!Directory.Exists(chacheDirectory)) throw new DirectoryNotFoundException(chacheDirectory);
+
+
+            //// Get bin files in chache
+            //var files = Directory.EnumerateFiles(chacheDirectory, "*ffmpeg*", SearchOption.AllDirectories)
+            //    .Concat(Directory.EnumerateFiles(chacheDirectory, "*ffprobe*", SearchOption.AllDirectories))
+            //    .Distinct();
+
+            //// Recursive copy to target folder
+            //foreach (var src in files)
+            //{
+            //    string destinationPath = Path.Combine(targetPath, Path.GetFileName(src));
+            //    File.Copy(destinationPath, targetPath, overwrite: true);
+
+            //}
         }
 
         public async Task<string> DownloadFileAsync(string url, DownloadType downloadType)
@@ -57,7 +88,7 @@ namespace TelegramBot
 
             // Download run
             await RunProcessDownloadingAsync(args);
-            
+
             // Return a reference to dowmloaded file
             return outputTemplate;
         }
