@@ -18,6 +18,13 @@
 		<None Include="tools\yt-dlp.exe">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
+		<None Include="resources\DefaultImage.jpg">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="resources\" />
 	</ItemGroup>
 
 </Project>

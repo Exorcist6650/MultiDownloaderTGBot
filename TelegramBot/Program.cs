@@ -22,19 +22,18 @@ namespace MyApp
             return config[localVariableName] ?? throw new NullReferenceException($"Not find a {localVariableName} key");
         }
 
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             Host host = new Host(GetBotToken("BOT_TOKEN"), new ConsoleLogger());
 
-            // Bot instance
-            YTDownloaderBot YTBot = new YTDownloaderBot(host, 
+
+            DownloaderBot downloaderBot = new DownloaderBot(host, 
                 new YoutubeReciever(), 
+                new DownloadManager(),
                 new ConsoleLogger(), 
                 new TelegramLogger());
 
-            YTBot.Init(); // Bot recieving start
-            var dm = new DownloadManager();
-            dm.DownloadFileAsync("https://vt.tiktok.com/ZSQyaRVXS", DownloadType.Audio);
+            await downloaderBot.Init(); // Bot recieving start
 
             Console.ReadLine();
         }

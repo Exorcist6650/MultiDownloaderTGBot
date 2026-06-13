@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Xabe.FFmpeg;
 using Xabe.FFmpeg.Downloader;
@@ -13,7 +14,10 @@ namespace TelegramBot
 {
     public enum DownloadType : byte
     {
-        Video,
+        Preview,
+        Thumbnail,
+        VideoBest,
+        VideoMerged,
         Audio,
     }
 
@@ -25,75 +29,126 @@ namespace TelegramBot
 
         // Fields
         private readonly string ytdlpPath = Path.Combine(Directory.GetCurrentDirectory(), "tools", "yt-dlp.exe");
+        private bool isReadyToUse = false;
 
+        private const string STANDARD_IMAGE_FORMAT = "jpg";
         public DownloadManager()
         {
             // Dependencies
             _consoleLogger = new ConsoleLogger();
+        }
 
+        public async Task<int> Init()
+        {
             // Checking yt-dlp existing
             if (File.Exists(ytdlpPath))
             {
                 _consoleLogger.Log("yt-dlp was found successfully");
-                FFmpegDownload(Path.Combine(Directory.GetCurrentDirectory(), "tools"));
+                await FFmpegDownload();
+                isReadyToUse = true;
+                return 0;
             }
             else
                 _consoleLogger.Log("yt-dlp does not exist in directory", LogStatus.Error);
+
+            return 1;
         }
 
-        private async void FFmpegDownload(string targetPath)
+        private async Task FFmpegDownload()
         {
+            _consoleLogger.Log("DownloadManager init starting");
+
             // Download ffmpeg to chache
             await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official);
 
-            //// Chache directory path
-            //string chacheDirectory =
-            //    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Xabe.FFmpeg");
-            //if (!Directory.Exists(chacheDirectory)) throw new DirectoryNotFoundException(chacheDirectory);
-
-
-            //// Get bin files in chache
-            //var files = Directory.EnumerateFiles(chacheDirectory, "*ffmpeg*", SearchOption.AllDirectories)
-            //    .Concat(Directory.EnumerateFiles(chacheDirectory, "*ffprobe*", SearchOption.AllDirectories))
-            //    .Distinct();
-
-            //// Recursive copy to target folder
-            //foreach (var src in files)
-            //{
-            //    string destinationPath = Path.Combine(targetPath, Path.GetFileName(src));
-            //    File.Copy(destinationPath, targetPath, overwrite: true);
-
-            //}
+            _consoleLogger.Log("DownloadManager init complete");
         }
 
-        public async Task<string> DownloadFileAsync(string url, DownloadType downloadType)
+        public async Task<(string filePath, string fileTitle)?> DownloadFileAsync(string url, DownloadType downloadType)
         {
-            string outputTemplate = Path.Combine(Path.GetTempPath(), "%(title)s.%(ext)s");
+            // If manager is not init
+            if (!isReadyToUse) throw new InvalidOperationException("Download manager must be init before using");
+
+            string outputTemplate = Path.Combine(
+                Path.GetTempPath(),
+                $"{Path.GetFileNameWithoutExtension(Path.GetRandomFileName())}.%(ext)s"
+            );
 
             // Empty url
-            if (string.IsNullOrWhiteSpace(url)) throw new ArgumentException("URL required", nameof(url));
+            if (string.IsNullOrWhiteSpace(url)) return null;
 
             // Arguments for downloading
             string args = string.Empty;
 
             switch (downloadType)
             {
-                case DownloadType.Video:
-                    args = $"--no-playlist --newline -f b -o\"{outputTemplate}\" \"{url}\"";
+                case DownloadType.Thumbnail:
+                case DownloadType.Preview:
+                    args = $"--no-playlist --newline --print-json --no-warnings --skip-download " +
+                        $"--write-thumbnail --convert-thumbnails jpg -o\"{outputTemplate}\" \"{url}\"";
+                    break;
+                case DownloadType.VideoBest:
+                    args = $"--no-playlist --newline --print-json --no-warnings -f \"bestvideo+bestaudio/best\" -o\"{outputTemplate}\" \"{url}\"";
+                    break;
+                case DownloadType.VideoMerged:
+                    args = $"--no-playlist --newline --print-json --no-warnings -f b -o\"{outputTemplate}\" \"{url}\"";
                     break;
                 case DownloadType.Audio:
-                    args = $"--no-playlist --newline --extract-audio --audio-format mp3 -f bestaudio,best -o\"{outputTemplate}\" \"{url}\"";
+                    args = $"--no-playlist --newline --print-json --no-warnings " +
+                        $"--extract-audio --audio-format mp3 -f bestaudio,best -o\"{outputTemplate}\" \"{url}\"";
                     break;
             }
 
             // Download run
-            await RunProcessDownloadingAsync(args);
+            var processResults = await RunProcessDownloadingAsync(args);
+            if (processResults.ExitCode == 0) // Checking success loading
+            {
+                // Parsing first JSON string from output
+                var firstJsonString = processResults.Stdout.Split("\n", StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+                if (string.IsNullOrEmpty(firstJsonString)) return null; // Null data
 
-            // Return a reference to dowmloaded file
-            return outputTemplate;
+                // Parsing string to JSON file
+                using var document = JsonDocument.Parse(firstJsonString);
+                var root = document.RootElement;
+
+
+                // Searching file path
+                if (root.TryGetProperty("filename", out var filePath) && filePath.ValueKind == JsonValueKind.String)
+                {
+                    // File path
+                    var downloadedFilePath = filePath.ToString();
+
+                    // Change ext to jpg if image
+                    if (downloadType == DownloadType.Thumbnail || downloadType == DownloadType.Preview)
+                            downloadedFilePath = Path.ChangeExtension(downloadedFilePath, "jpg");
+
+                    // Change ext to mp3 if audio
+                    if (downloadType == DownloadType.Audio)
+                        downloadedFilePath = Path.ChangeExtension(downloadedFilePath, "mp3");
+
+
+                    // Searching file title
+                    if (root.TryGetProperty("title", out var title) && title.ValueKind == JsonValueKind.String)
+                    {
+                        return (downloadedFilePath, title.ToString()); // Return a path to downloaded file with video title
+                    }
+                }
+                return null;
+            }
+            else
+                _consoleLogger.Log(processResults.Stderr, LogStatus.Error);
+
+            return null;
         }
 
-        private async Task<int> RunProcessDownloadingAsync(string args)
+        /// <summary>
+        /// Run yt-dlp process with arguments
+        /// </summary>
+        /// <param name="args"></param>
+        /// <returns>
+        /// Exit code, standard outputs, standard errors
+        /// </returns>
+        private async Task<(int ExitCode, string Stdout, string Stderr)> RunProcessDownloadingAsync(string args)
         {
             var processStartInfo = new ProcessStartInfo
             {
@@ -107,26 +162,17 @@ namespace TelegramBot
                 StandardErrorEncoding = Encoding.UTF8,
             };
 
-            using var process = new Process() { StartInfo = processStartInfo, EnableRaisingEvents = true };
-
-            // Events for logging 
-            process.OutputDataReceived += (sender, e) =>
-            { if (e.Data != null) _consoleLogger.Log(e.Data); };
-
-            process.ErrorDataReceived += (sender, e) =>
-            { if (e.Data != null) _consoleLogger.Log(e.Data, LogStatus.Error); };
-
-            process.Exited += (sender, e) =>
-            { _consoleLogger.Log($"{process.ExitCode}"); process.Dispose(); };
-
             // Running
+            using var process = new Process() { StartInfo = processStartInfo, EnableRaisingEvents = true };
             process.Start();
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
+
+            // Reading outputs async
+            var outTask = process.StandardOutput.ReadToEndAsync();
+            var errTask = process.StandardError.ReadToEndAsync();
 
             await process.WaitForExitAsync();
 
-            return process.ExitCode;
+            return (process.ExitCode, await outTask, await errTask);
         }
     };
 }
