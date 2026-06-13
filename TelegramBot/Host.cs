@@ -45,6 +45,10 @@ namespace TelegramBot
                 var callback = update?.CallbackQuery;
                 if (callback != null)
                 {
+                    // Logging
+                    _consoleLogger.Log($"User click button: {callback.Data}");
+
+                    // Event calling
                     OnCallback?.Invoke(client, callback);
                 }
                 await Task.CompletedTask;

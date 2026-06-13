@@ -32,6 +32,8 @@ namespace TelegramBot
         private bool isReadyToUse = false;
 
         private const string STANDARD_IMAGE_FORMAT = "jpg";
+        private const string STANDARD_VIDEO_FORMAT = "mp4";
+        private const string STANDARD_AUDIO_FORMAT = "mp3";
         public DownloadManager()
         {
             // Dependencies
@@ -85,17 +87,18 @@ namespace TelegramBot
                 case DownloadType.Thumbnail:
                 case DownloadType.Preview:
                     args = $"--no-playlist --newline --print-json --no-warnings --skip-download " +
-                        $"--write-thumbnail --convert-thumbnails jpg -o\"{outputTemplate}\" \"{url}\"";
+                        $"--write-thumbnail --convert-thumbnails {STANDARD_IMAGE_FORMAT} -o\"{outputTemplate}\" \"{url}\"";
                     break;
                 case DownloadType.VideoBest:
-                    args = $"--no-playlist --newline --print-json --no-warnings -f \"bestvideo+bestaudio/best\" -o\"{outputTemplate}\" \"{url}\"";
+                    args = $"--no-playlist --newline --print-json --no-warnings --merge-output-format {STANDARD_VIDEO_FORMAT} " +
+                        $"-f \"bestvideo+bestaudio/best\" -o\"{outputTemplate}\" \"{url}\"";
                     break;
                 case DownloadType.VideoMerged:
                     args = $"--no-playlist --newline --print-json --no-warnings -f b -o\"{outputTemplate}\" \"{url}\"";
                     break;
                 case DownloadType.Audio:
                     args = $"--no-playlist --newline --print-json --no-warnings " +
-                        $"--extract-audio --audio-format mp3 -f bestaudio,best -o\"{outputTemplate}\" \"{url}\"";
+                        $"--extract-audio --audio-format {STANDARD_AUDIO_FORMAT} -f bestaudio,best -o\"{outputTemplate}\" \"{url}\"";
                     break;
             }
 
@@ -120,11 +123,15 @@ namespace TelegramBot
 
                     // Change ext to jpg if image
                     if (downloadType == DownloadType.Thumbnail || downloadType == DownloadType.Preview)
-                            downloadedFilePath = Path.ChangeExtension(downloadedFilePath, "jpg");
+                            downloadedFilePath = Path.ChangeExtension(downloadedFilePath, STANDARD_IMAGE_FORMAT);
+
+                    // Change ext to mp4 if best video
+                    if (downloadType == DownloadType.VideoBest)
+                        downloadedFilePath = Path.ChangeExtension(downloadedFilePath, STANDARD_VIDEO_FORMAT);
 
                     // Change ext to mp3 if audio
                     if (downloadType == DownloadType.Audio)
-                        downloadedFilePath = Path.ChangeExtension(downloadedFilePath, "mp3");
+                        downloadedFilePath = Path.ChangeExtension(downloadedFilePath, STANDARD_AUDIO_FORMAT);
 
 
                     // Searching file title
