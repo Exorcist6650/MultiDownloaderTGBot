@@ -1,10 +1,11 @@
 ﻿using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
-using YoutubeConnect;
 
 namespace TelegramBot
 {
+
+    /// <summary>Send message to user status</summary>
     public enum LoadingStatus : byte
     {
         Successfully,
@@ -17,20 +18,18 @@ namespace TelegramBot
     {
         // Dependencies
         private readonly Host _host;
-        private readonly YoutubeReciever _ytReciever;
         private readonly DownloadManager _downloadManager;
         private readonly ConsoleLogger _consoleLogger;
         private readonly TelegramLogger _telegramLogger;
 
         // Fields
-        private readonly InlineKeyboardMarkup _inlineKeyboard;
+        private readonly InlineKeyboardMarkup _inlineKeyboard; // Buttons
         private const string PATH_TO_DEFAULT_IMAGE = "resources\\DefaultImage.jpg";
 
-        public DownloaderBot(Host host, YoutubeReciever ytReciever, DownloadManager downloadManager, ConsoleLogger consoleLogger, TelegramLogger telegramLogger)
+        public DownloaderBot(Host host, DownloadManager downloadManager, ConsoleLogger consoleLogger, TelegramLogger telegramLogger)
         {
-            // Binding
+            // Dependencies
             _host = host;
-            _ytReciever = ytReciever;
             _downloadManager = downloadManager;
             _consoleLogger = consoleLogger;
             _telegramLogger = telegramLogger;
@@ -39,7 +38,7 @@ namespace TelegramBot
             _host.OnMessage += OnUserSendMessage;
             _host.OnCallback += OnUserClickButton;
 
-            // Fields init
+            // Button keyboard init
             _inlineKeyboard = new InlineKeyboardMarkup(new[]
             {
                 new[]
@@ -53,7 +52,6 @@ namespace TelegramBot
                 },
             });
         }
-
 
         public async Task<int> Init()
         {
@@ -82,6 +80,7 @@ namespace TelegramBot
             var chatId = update?.Message?.Chat.Id ?? 0;
             string userMessage = update?.Message?.Text ?? string.Empty;
 
+            // Default commands
             if (userMessage == "/start")
             {
                 await _telegramLogger.Log("Send video link", client, chatId);
@@ -115,7 +114,7 @@ namespace TelegramBot
                         // Loading and sending video
                         var downloadResult = await SendDownloadedMediaAsync(client, chatId, videoUrl, DownloadType.VideoBest);
 
-                        // If video is bigger than 50 trying to download merged
+                        // If video is bigger than 50mb trying to download merged
                         if (downloadResult == LoadingStatus.BiggerThanLimit)
                         {
                             // Loading message for user
@@ -123,7 +122,7 @@ namespace TelegramBot
 
                             // Loading and sending merged video
                             var downloadedMergedResult = await SendDownloadedMediaAsync(client, chatId, videoUrl, DownloadType.VideoMerged);
-                            
+
                             if (downloadedMergedResult != LoadingStatus.Successfully)
                                 await _telegramLogger.Log("Cannot download the video", client, chatId);
 
@@ -193,126 +192,15 @@ namespace TelegramBot
             }
         }
 
-        // Functions
-        private async Task<bool> LoadAndSendPreviewInfoAsync(ITelegramBotClient client, ChatId chatId, string url)
-        {
-            // Get async video
-            VideoInfo? videoInfo = await _ytReciever.GetVideoInfoAsync(url);
-            if (videoInfo != null)
-            {
-                // Preview image stream
-                using var memoryStream = await _ytReciever.GetVideoPreviewStreamAsync(url);
-                if (memoryStream != null)
-                {
-                    // Key with link to download video
-                    string LinkToVideo = $"\nLINK: {url}";
-
-                    // Text сaption
-                    string textCaption =
-                        $"{videoInfo?.Title}" +
-                        $"\nAuthor: {videoInfo?.Channel}" +
-                        $"\nVideo duration: {videoInfo?.Duration}\n\n" +
-                        videoInfo?.Description +
-                        "..." +
-                        $"\n{LinkToVideo}";
-
-                    // Sending to chat
-                    try
-                    {
-
-                        // Telegram message with buttons
-                        await client.SendPhoto(
-                            chatId,
-                            InputFile.FromStream(memoryStream),
-                            textCaption,
-                            replyMarkup: _inlineKeyboard
-                        );
-
-                        _consoleLogger.Log("Preview sending sucсessfully");
-                    }
-                    catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.ErrorCode == 403)
-                    {
-                        _consoleLogger.Log($"Exception: {ex.Message}", LogStatus.Error);
-                    }
-                    catch (Exception ex)
-                    {
-                        _consoleLogger.Log($"Exception: {ex.Message}", LogStatus.Error);
-                    }
-
-                    return true;
-                }
-                else
-                {
-                    await _telegramLogger.Log("Preview download failed", client, chatId, LogStatus.Error);
-                    _consoleLogger.Log("Preview stream failed", LogStatus.Error);
-                    return false;
-                }
-            }
-            else
-            {
-                await _telegramLogger.Log("Cannot download this. Please, send a link to youtube video", client, chatId);
-                return false;
-            }
-        }
-
-        private async Task SendPreviewMessageAsync(ITelegramBotClient client, ChatId chatId, string url)
-        {
-            // Get async video
-            var thumbnailData = await _downloadManager.DownloadFileAsync(url, DownloadType.Thumbnail);
-            if (thumbnailData != null)
-            {
-                // Open file stream
-                using var fileStream = new FileStream(thumbnailData?.filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-
-                if (fileStream != null)
-                {
-                    // Key with link to download video
-                    string LinkToVideo = $"\nLINK: {url}";
-
-                    // Text сaption
-                    string textCaption =
-                        $"{thumbnailData?.fileTitle}" +
-                        $"\n\nChoose download type:" +
-                        $"\n{LinkToVideo}";
-
-                    // Sending to chat
-                    try
-                    {
-
-                        // Telegram message with buttons
-                        await client.SendPhoto(
-                            chatId,
-                            InputFile.FromStream(fileStream),
-                            textCaption,
-                            replyMarkup: _inlineKeyboard
-                        );
-
-                        _consoleLogger.Log("Preview sending sucсessfully");
-                    }
-                    catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.ErrorCode == 403)
-                    {
-                        _consoleLogger.Log($"Exception: {ex.Message}", LogStatus.Error);
-                    }
-                    catch (Exception ex)
-                    {
-                        _consoleLogger.Log($"Exception: {ex.Message}", LogStatus.Error);
-                    }
-                }
-                else
-                {
-                    await _telegramLogger.Log("Preview download failed", client, chatId, LogStatus.Error);
-                    _consoleLogger.Log("Preview stream failed", LogStatus.Error);
-                }
-
-                // Clear file with picture
-                DeleteTemporaryFile(thumbnailData?.filePath);
-            }
-            else
-                await _telegramLogger.Log("Cannot download this. Maybe private access or incorrect link", client, chatId);
-
-        }
-
-        private async Task<LoadingStatus> SendDownloadedMediaAsync(ITelegramBotClient client, ChatId chatId, string url, DownloadType downloadType)
+        /// <summary>
+        /// Downloading media by url and sending to user
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="chatId"></param>
+        /// <param name="url"></param>
+        /// <param name="downloadType"></param>
+        /// <returns>Status of sending | downloading media</returns>
+        public async Task<LoadingStatus> SendDownloadedMediaAsync(ITelegramBotClient client, ChatId chatId, string url, DownloadType downloadType)
         {
             LoadingStatus result = LoadingStatus.Successfully;
 
@@ -440,103 +328,5 @@ namespace TelegramBot
                 File.Delete(path);
         }
 
-        private async Task LoadAndSendMuxedVideoAsync(ITelegramBotClient client, ChatId chatId, string url)
-        {
-            // Temp file path
-            var videoPath = await _ytReciever.LoadTempVideoMuxedAsync(url);
-
-            if (videoPath != null)
-            {
-                // Open file stream
-                using var fileStream = new FileStream(videoPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-
-                if (fileStream != null)
-                {
-                    if (fileStream.Length / 1024 <= 49_500)
-                    {
-                        try
-                        {
-                            // Sending video to chat
-                            await client.SendVideo(
-                                chatId,
-                                new InputFileStream(fileStream, "Video"),
-                                caption: $"@{_host.Me.Username}",
-                                supportsStreaming: true
-                            );
-
-                            _consoleLogger.Log("Video send sucсessfully");
-                        }
-                        catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.ErrorCode == 403)
-                        {
-                            _consoleLogger.Log($"Exception: {ex.Message}", LogStatus.Error);
-                        }
-                        catch (Exception ex)
-                        {
-                            _telegramLogger?.Log(ex.Message, client, chatId, LogStatus.Error);
-                            _consoleLogger.Log($"Exception: {ex.Message}", LogStatus.Error);
-                        }
-                    }
-                    else
-                        _telegramLogger?.Log("Video limit is 50mb", client, chatId);
-                }
-                else
-                    _consoleLogger.Log($"Video stream is null", LogStatus.Error);
-
-            }
-            else
-                _consoleLogger.Log($"Video path is null", LogStatus.Error);
-        }
-        private async Task LoadAndSendingAudioAsync(ITelegramBotClient client, ChatId chatId, string url)
-        {
-            // Temp file path
-            var audioPath = await _ytReciever.LoadTempAudioAsync(url);
-
-            if (audioPath != null)
-            {
-
-                // Open file stream
-                using var fileStream = new FileStream(audioPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-
-                if (fileStream != null)
-                {
-                    if (fileStream.Length / 1024 <= 49_500)
-                    {
-                        // Loading video info 
-                        var videoInfo = await _ytReciever.GetVideoInfoAsync(url);
-
-                        try
-                        {
-                            // Sending audio to chat
-                            await client.SendAudio(
-                                chatId,
-                                new InputFileStream(fileStream, videoInfo?.Title ?? "Unknown"),
-                                caption: $"@{_host.Me.Username}"
-                            );
-
-                            _consoleLogger.Log("Audio send sucсessfully");
-                        }
-                        catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.ErrorCode == 403)
-                        {
-                            _consoleLogger.Log($"Exception: {ex.Message}", LogStatus.Error);
-                        }
-                        catch (Exception ex)
-                        {
-                            _telegramLogger?.Log(ex.Message, client, chatId, LogStatus.Error);
-                            _consoleLogger.Log($"Exception: {ex.Message}", LogStatus.Error);
-                        }
-                    }
-                    else
-                        _telegramLogger?.Log("Audio limit is 50mb", client, chatId);
-                }
-                else
-                    _consoleLogger.Log($"Audio stream is null", LogStatus.Error);
-            }
-            else
-                _consoleLogger.Log($"Audio path is null", LogStatus.Error);
-
-            // Deleting audio file
-            if (System.IO.File.Exists(audioPath))
-                System.IO.File.Delete(audioPath);
-        }
-    }
+    };
 }

@@ -1,5 +1,4 @@
 ﻿using System;
-using AngleSharp.Dom;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
@@ -30,6 +29,7 @@ namespace TelegramBot
         {
             _bot.StartReceiving(UpdateHandler, ErrorHandler);
             Me = await _bot.GetMe();
+
             _consoleLogger.Log("Start receiving");
         }
 
@@ -88,8 +88,5 @@ namespace TelegramBot
             _consoleLogger.Log(exception.Message, LogStatus.Error);
             await Task.CompletedTask;
         }
-
-        public async Task<User> GetMe() => await _bot.GetMe();
-
     }
 }

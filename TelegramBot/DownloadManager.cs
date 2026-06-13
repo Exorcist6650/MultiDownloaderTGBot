@@ -21,7 +21,6 @@ namespace TelegramBot
         Audio,
     }
 
-
     public class DownloadManager
     {
         // Dependencies
@@ -31,9 +30,11 @@ namespace TelegramBot
         private readonly string ytdlpPath = Path.Combine(Directory.GetCurrentDirectory(), "tools", "yt-dlp.exe");
         private bool isReadyToUse = false;
 
+        // Formats
         private const string STANDARD_IMAGE_FORMAT = "jpg";
         private const string STANDARD_VIDEO_FORMAT = "mp4";
         private const string STANDARD_AUDIO_FORMAT = "mp3";
+
         public DownloadManager()
         {
             // Dependencies
@@ -46,7 +47,7 @@ namespace TelegramBot
             if (File.Exists(ytdlpPath))
             {
                 _consoleLogger.Log("yt-dlp was found successfully");
-                await FFmpegDownload();
+                await FFmpegDownload(); // Downloaded ffmpeg | ffprobe for yt-dlp
                 isReadyToUse = true;
                 return 0;
             }
@@ -66,6 +67,16 @@ namespace TelegramBot
             _consoleLogger.Log("DownloadManager init complete");
         }
 
+        /// <summary>
+        /// Download media to temp path by the link to the video
+        /// </summary>
+        /// <param name="url">Link to the video</param>
+        /// <param name="downloadType">Media type that will be downloaded</param>
+        /// <returns>
+        /// Absolute path to the media file
+        /// Video title
+        /// </returns>
+        /// <exception cref="InvalidOperationException"></exception>
         public async Task<(string filePath, string fileTitle)?> DownloadFileAsync(string url, DownloadType downloadType)
         {
             // If manager is not init
@@ -137,7 +148,8 @@ namespace TelegramBot
                     // Searching file title
                     if (root.TryGetProperty("title", out var title) && title.ValueKind == JsonValueKind.String)
                     {
-                        return (downloadedFilePath, title.ToString()); // Return a path to downloaded file with video title
+                        // Return a path to downloaded file with video title
+                        return (downloadedFilePath, title.ToString()); 
                     }
                 }
                 return null;

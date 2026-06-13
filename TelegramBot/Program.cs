@@ -1,12 +1,10 @@
 ﻿using System;
-using AngleSharp;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.Configuration.EnvironmentVariables;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using TelegramBot;
-using YoutubeConnect;
 
 namespace MyApp
 {
@@ -27,11 +25,13 @@ namespace MyApp
             Host host = new Host(GetBotToken("BOT_TOKEN"), new ConsoleLogger());
 
 
-            DownloaderBot downloaderBot = new DownloaderBot(host, 
-                new YoutubeReciever(), 
+            DownloaderBot downloaderBot = new DownloaderBot
+            (
+                host, 
                 new DownloadManager(),
                 new ConsoleLogger(), 
-                new TelegramLogger());
+                new TelegramLogger()
+            );
 
             await downloaderBot.Init(); // Bot recieving start
 
