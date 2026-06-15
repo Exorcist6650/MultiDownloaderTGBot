@@ -17,7 +17,7 @@ namespace TelegramBot
 
     public class ConsoleLogger
     {
-        public void Log(string message, LogStatus status = LogStatus.Message)
+        static public void Log(string message, LogStatus status = LogStatus.Message)
         {
             Console.WriteLine($"{DateTime.UtcNow} | {message} | {status}");
         }
@@ -30,16 +30,16 @@ namespace TelegramBot
         /// </summary>
         /// <param name="message"></param>
         /// <param name="client"></param>
-        /// <param name="chatID"></param>
+        /// <param name="chatId"></param>
         /// <param name="status"></param>
         /// <returns>
         /// Return a bot message reference
         /// </returns>
-        public async Task<Message?> Log(string message, ITelegramBotClient client, ChatId chatID, LogStatus status = LogStatus.Message)
+        public async Task<Message?> Send(string message, ITelegramBotClient client, ChatId chatId, LogStatus status = LogStatus.Message)
         {
             try
             {
-                var bot_message = await client.SendMessage(chatID, status == LogStatus.Message ? message
+                var bot_message = await client.SendMessage(chatId, status == LogStatus.Message ? message
                     : $"{DateTime.UtcNow} | {message} | {status}");
                 return bot_message;
             }
@@ -54,6 +54,24 @@ namespace TelegramBot
                 return null;
             }
 
+        }
+
+        public async Task Delete(Message? message, ITelegramBotClient client, ChatId chatId)
+        {
+            // Deleting message for user
+            try
+            {
+                if (message != null)
+                    await client.DeleteMessage(chatId, message.Id);
+            }
+            catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.ErrorCode == 403)
+            {
+                ConsoleLogger.Log($"Exception: {ex.Message}", LogStatus.Error);
+            }
+            catch (Exception ex)
+            {
+                ConsoleLogger.Log($"Excertion: {ex.Message}", LogStatus.Error);
+            }
         }
     }
 }

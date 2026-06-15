@@ -23,9 +23,6 @@ namespace TelegramBot
 
     public class DownloadManager
     {
-        // Dependencies
-        private readonly ConsoleLogger _consoleLogger;
-
         // Fields
         private readonly string ytdlpPath = Path.Combine(Directory.GetCurrentDirectory(), "tools", "yt-dlp.exe");
         private bool isReadyToUse = false;
@@ -35,36 +32,30 @@ namespace TelegramBot
         private const string STANDARD_VIDEO_FORMAT = "mp4";
         private const string STANDARD_AUDIO_FORMAT = "mp3";
 
-        public DownloadManager()
-        {
-            // Dependencies
-            _consoleLogger = new ConsoleLogger();
-        }
-
         public async Task<int> Init()
         {
             // Checking yt-dlp existing
             if (File.Exists(ytdlpPath))
             {
-                _consoleLogger.Log("yt-dlp was found successfully");
+                ConsoleLogger.Log("yt-dlp was found successfully");
                 await FFmpegDownload(); // Downloaded ffmpeg | ffprobe for yt-dlp
                 isReadyToUse = true;
                 return 0;
             }
             else
-                _consoleLogger.Log("yt-dlp does not exist in directory", LogStatus.Error);
+                ConsoleLogger.Log("yt-dlp does not exist in directory", LogStatus.Error);
 
             return 1;
         }
 
         private async Task FFmpegDownload()
         {
-            _consoleLogger.Log("DownloadManager init starting");
+            ConsoleLogger.Log("DownloadManager init starting");
 
             // Download ffmpeg to chache
             await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official);
 
-            _consoleLogger.Log("DownloadManager init complete");
+            ConsoleLogger.Log("DownloadManager init complete");
         }
 
         /// <summary>
@@ -155,7 +146,7 @@ namespace TelegramBot
                 return null;
             }
             else
-                _consoleLogger.Log(processResults.Stderr, LogStatus.Error);
+                ConsoleLogger.Log(processResults.Stderr, LogStatus.Error);
 
             return null;
         }

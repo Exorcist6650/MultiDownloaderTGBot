@@ -15,14 +15,12 @@ namespace TelegramBot
 
         // Fields
         private readonly TelegramBotClient _bot; // Bot instance
-        private readonly ConsoleLogger _consoleLogger;
 
         public User Me { get; private set; } // Bot info
 
         public Host(string token, ConsoleLogger consoleLogger)
         {
             _bot = new TelegramBotClient(token);
-            _consoleLogger = consoleLogger;
         }
 
         public async void Start()
@@ -30,10 +28,10 @@ namespace TelegramBot
             _bot.StartReceiving(UpdateHandler, ErrorHandler);
             Me = await _bot.GetMe();
 
-            _consoleLogger.Log("Start receiving");
+            ConsoleLogger.Log("Start receiving");
         }
 
-        // Handlers update methods
+        // Update handler
         private async Task UpdateHandler(ITelegramBotClient client, Update update, CancellationToken token)
         {
             var message = update.Message;
@@ -46,7 +44,7 @@ namespace TelegramBot
                 if (callback != null)
                 {
                     // Logging
-                    _consoleLogger.Log($"User click button: {callback.Data}");
+                    ConsoleLogger.Log($"User click button: {callback.Data}");
 
                     // Event calling
                     OnCallback?.Invoke(client, callback);
@@ -61,7 +59,7 @@ namespace TelegramBot
                     $"\t Username: {message?.Chat.Username}" +
                     $"\t UserID: {message?.Chat.Id}";
 
-                _consoleLogger.Log(logText);
+                ConsoleLogger.Log(logText);
 
                 // Event calling
                 if (update != null)
@@ -74,18 +72,18 @@ namespace TelegramBot
                 }
                 catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.ErrorCode == 403)
                 {
-                    _consoleLogger.Log($"Exception: {ex.Message}", LogStatus.Error);
+                    ConsoleLogger.Log($"Exception: {ex.Message}", LogStatus.Error);
                 }
                 catch (Exception ex)
                 {
-                    _consoleLogger.Log($"Exception: {ex.Message}", LogStatus.Error);
+                    ConsoleLogger.Log($"Exception: {ex.Message}", LogStatus.Error);
                 }
             }
 
         }
         private async Task ErrorHandler(ITelegramBotClient client, Exception exception, HandleErrorSource source, CancellationToken token)
         {
-            _consoleLogger.Log(exception.Message, LogStatus.Error);
+            ConsoleLogger.Log(exception.Message, LogStatus.Error);
             await Task.CompletedTask;
         }
     }
