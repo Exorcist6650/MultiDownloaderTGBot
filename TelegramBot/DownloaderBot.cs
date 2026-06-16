@@ -1,4 +1,5 @@
-﻿using Telegram.Bot;
+﻿using System.Runtime.InteropServices.JavaScript;
+using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 
@@ -41,12 +42,21 @@ namespace TelegramBot
             {
                 new[]
                 {
-                    InlineKeyboardButton.WithCallbackData("Download video", "action:video"),
-                    InlineKeyboardButton.WithCallbackData("Download audio", "action:audio"),
+                    InlineKeyboardButton.WithCallbackData
+                    (
+                        JSONReader.getValue("ButtonVideo") ?? string.Empty, "action:video"
+                    ),
+                    InlineKeyboardButton.WithCallbackData
+                    (
+                        JSONReader.getValue("ButtonAudio") ?? string.Empty, "action:audio"
+                    ),
                 },
                 new []
                 {
-                    InlineKeyboardButton.WithCallbackData("Cancel", "action:cancel"),
+                    InlineKeyboardButton.WithCallbackData
+                    (
+                        JSONReader.getValue("ButtonCancel") ?? string.Empty, "action:cancel"
+                    ),
                 },
             });
         }
@@ -81,12 +91,12 @@ namespace TelegramBot
             // Default commands
             if (userMessage == "/start")
             {
-                await _telegramLogger.Send("Send video link", client, chatId);
+                await _telegramLogger.Send(JSONReader.getValue("Greeting") ?? string.Empty, client, chatId);
                 return;
             }
 
             // Sending searching message
-            var searchingMessage = await _telegramLogger.Send("Searching for info", client, chatId);
+            var searchingMessage = await _telegramLogger.Send(JSONReader.getValue("Searching") ?? string.Empty, client, chatId);
 
             // Loading and sending info message with buttons
             await SendDownloadedMediaAsync(client, chatId, userMessage, DownloadType.Preview);
@@ -113,7 +123,10 @@ namespace TelegramBot
                     case "action:video":
 
                         // Loading message for user
-                        var loadingVideoMessage = await _telegramLogger.Send("Video has started download...", client, chatId);
+                        var loadingVideoMessage = await _telegramLogger.Send
+                            (
+                                JSONReader.getValue("LoadingVideo") ?? string.Empty, client, chatId
+                            );
 
                         // Loading and sending video
                         var downloadResult = await SendDownloadedMediaAsync(client, chatId, videoUrl, DownloadType.VideoBest);
@@ -122,69 +135,39 @@ namespace TelegramBot
                         if (downloadResult == LoadingStatus.BiggerThanLimit)
                         {
                             // Loading message for user
-                            var loadingMergedVideoMessage = await _telegramLogger.Send("Trying to download low quality", client, chatId);
+                            var loadingMergedVideoMessage = await _telegramLogger.Send
+                                (
+                                    JSONReader.getValue("LowQualityDownloadTrying") ?? string.Empty, client, chatId
+                                );
 
                             // Loading and sending merged video
-                            var downloadedMergedResult = await SendDownloadedMediaAsync(client, chatId, videoUrl, DownloadType.VideoMerged);
+                            await SendDownloadedMediaAsync(client, chatId, videoUrl, DownloadType.VideoMerged);
 
-                            if (downloadedMergedResult != LoadingStatus.Successfully)
-                                await _telegramLogger.Send("Cannot download the video", client, chatId);
 
                             // Deleting message for user
-                            try
-                            {
-                                if (loadingMergedVideoMessage != null)
-                                    await client.DeleteMessage(chatId, loadingMergedVideoMessage.Id);
-                            }
-                            catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.ErrorCode == 403)
-                            {
-                                ConsoleLogger.Log($"Exception: {ex.Message}", LogStatus.Error);
-                            }
-                            catch (Exception ex)
-                            {
-                                ConsoleLogger.Log($"Excertion: {ex.Message}", LogStatus.Error);
-                            }
+                            await _telegramLogger.Delete(loadingMergedVideoMessage, client, chatId);
                         }
 
                         // Deleting message for user
-                        try
-                        {
-                            if (loadingVideoMessage != null)
-                                await client.DeleteMessage(chatId, loadingVideoMessage.Id);
-                        }
-                        catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.ErrorCode == 403)
-                        {
-                            ConsoleLogger.Log($"Exception: {ex.Message}", LogStatus.Error);
-                        }
-                        catch (Exception ex)
-                        {
-                            ConsoleLogger.Log($"Excertion: {ex.Message}", LogStatus.Error);
-                        }
+                        await _telegramLogger.Delete(loadingVideoMessage, client, chatId);
+                        
                         break;
 
 
                     // User download audio
                     case "action:audio":
                         // Loading message for user
-                        var LoadingAudioMessage = await _telegramLogger.Send("Audio has started download...", client, chatId);
+                        var loadingAudioMessage = await _telegramLogger.Send
+                            (
+                                JSONReader.getValue("LoadingAudio") ?? string.Empty, client, chatId
+                            );
 
                         // Loading and sending audio
                         await SendDownloadedMediaAsync(client, chatId, videoUrl, DownloadType.Audio);
 
                         // Deleting message for user
-                        try
-                        {
-                            if (LoadingAudioMessage != null)
-                                await client.DeleteMessage(chatId, LoadingAudioMessage.Id);
-                        }
-                        catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.ErrorCode == 403)
-                        {
-                            ConsoleLogger.Log($"Exception: {ex.Message}", LogStatus.Error);
-                        }
-                        catch (Exception ex)
-                        {
-                            ConsoleLogger.Log($"Exception: {ex.Message}", LogStatus.Error);
-                        }
+                        await _telegramLogger.Delete(loadingAudioMessage, client, chatId);
+                        
                         break;
 
 
@@ -243,7 +226,7 @@ namespace TelegramBot
                                     // Text сaption
                                     string textCaption =
                                         $"{mediaData?.fileTitle}" +
-                                        $"\n\nChoose download type:" +
+                                        $"\n\n{JSONReader.getValue("InfoText")}" +
                                         $"\n{LinkToVideo}";
 
                                     // Telegram message with buttons
@@ -300,7 +283,10 @@ namespace TelegramBot
                     }
                     else
                     {
-                        _telegramLogger?.Send("Media limit is 50mb", client, chatId);
+                        _telegramLogger?.Send
+                        (
+                            JSONReader.getValue("MediaLimit") ?? string.Empty, client, chatId
+                        );
 
                         result = LoadingStatus.BiggerThanLimit;
                     }
@@ -315,7 +301,10 @@ namespace TelegramBot
             else
             {
                 ConsoleLogger.Log("Media path is null", LogStatus.Error);
-                await _telegramLogger.Send("Cannot download this. Maybe private access or incorrect link", client, chatId);
+                await _telegramLogger.Send
+                (
+                    JSONReader.getValue("NotValidLink") ?? string.Empty, client, chatId
+                );
 
                 result = LoadingStatus.NotValidLink;
             }
