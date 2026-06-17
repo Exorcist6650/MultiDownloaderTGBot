@@ -129,28 +129,43 @@ namespace TelegramBot
                             );
 
                         // Loading and sending video
-                        var downloadResult = await SendDownloadedMediaAsync(client, chatId, videoUrl, DownloadType.VideoBest);
+                        var downloadVideoResult = await SendDownloadedMediaAsync(client, chatId, videoUrl, DownloadType.VideoBest);
 
                         // If video is bigger than 50mb trying to download merged
-                        if (downloadResult == LoadingStatus.BiggerThanLimit)
+                        if (downloadVideoResult == LoadingStatus.BiggerThanLimit)
                         {
-                            // Loading message for user
+                            // Limit message for user
+                            var biggerThanLimitMessage = await _telegramLogger.Send
+                                (
+                                    JSONReader.getValue("MediaLimit") ?? string.Empty, client, chatId
+                                );
+
+                            // Loading new video message for user
                             var loadingMergedVideoMessage = await _telegramLogger.Send
                                 (
                                     JSONReader.getValue("LowQualityDownloadTrying") ?? string.Empty, client, chatId
                                 );
 
                             // Loading and sending merged video
-                            await SendDownloadedMediaAsync(client, chatId, videoUrl, DownloadType.VideoMerged);
+                            var downloadVideoMergedResult = await SendDownloadedMediaAsync(client, chatId, videoUrl, DownloadType.VideoMerged);
+
+                            // Limit message for user
+                            if (downloadVideoMergedResult == LoadingStatus.BiggerThanLimit)
+                            {
+                                await _telegramLogger.Send
+                                (
+                                    JSONReader.getValue("MediaLimit") ?? string.Empty, client, chatId
+                                );
+                            }
 
 
                             // Deleting message for user
+                            await _telegramLogger.Delete(biggerThanLimitMessage, client, chatId);
                             await _telegramLogger.Delete(loadingMergedVideoMessage, client, chatId);
                         }
 
                         // Deleting message for user
                         await _telegramLogger.Delete(loadingVideoMessage, client, chatId);
-                        
                         break;
 
 
@@ -163,11 +178,19 @@ namespace TelegramBot
                             );
 
                         // Loading and sending audio
-                        await SendDownloadedMediaAsync(client, chatId, videoUrl, DownloadType.Audio);
+                        var downloadAudioResult = await SendDownloadedMediaAsync(client, chatId, videoUrl, DownloadType.Audio);
+
+                        // Limit message for user
+                        if (downloadAudioResult == LoadingStatus.BiggerThanLimit)
+                        {
+                            await _telegramLogger.Send
+                                (
+                                    JSONReader.getValue("MediaLimit") ?? string.Empty, client, chatId
+                                );
+                        }
 
                         // Deleting message for user
                         await _telegramLogger.Delete(loadingAudioMessage, client, chatId);
-                        
                         break;
 
 
@@ -282,14 +305,7 @@ namespace TelegramBot
                         }
                     }
                     else
-                    {
-                        _telegramLogger?.Send
-                        (
-                            JSONReader.getValue("MediaLimit") ?? string.Empty, client, chatId
-                        );
-
                         result = LoadingStatus.BiggerThanLimit;
-                    }
                 }
                 else
                 {
