@@ -99,7 +99,23 @@ namespace TelegramBot
             var searchingMessage = await _telegramLogger.Send(JSONReader.getValue("Searching") ?? string.Empty, client, chatId);
 
             // Loading and sending info message with buttons
-            await SendDownloadedMediaAsync(client, chatId, userMessage, DownloadType.Preview);
+            var loadingResutl = await SendDownloadedMediaAsync(client, chatId, userMessage, DownloadType.Preview);
+            switch (loadingResutl)
+            {
+                case LoadingStatus.BiggerThanLimit:
+                    await _telegramLogger.Send
+                        (
+                            JSONReader.getValue("MediaLimit") ?? string.Empty, client, chatId
+                        );
+                    break;
+
+                case LoadingStatus.NotValidLink:
+                    await _telegramLogger.Send
+                        (
+                            JSONReader.getValue("NotValidLink") ?? string.Empty, client, chatId
+                        );
+                    break;
+            }
 
             // Delete searching message
             await _telegramLogger.Delete(searchingMessage, client, chatId);
@@ -158,10 +174,16 @@ namespace TelegramBot
                                 );
                             }
 
-
                             // Deleting message for user
                             await _telegramLogger.Delete(biggerThanLimitMessage, client, chatId);
                             await _telegramLogger.Delete(loadingMergedVideoMessage, client, chatId);
+                        }
+                        else if (downloadVideoResult == LoadingStatus.NotValidLink)
+                        {
+                            await _telegramLogger.Send
+                                (
+                                    JSONReader.getValue("NotValidLink") ?? string.Empty, client, chatId
+                                );
                         }
 
                         // Deleting message for user
@@ -186,6 +208,13 @@ namespace TelegramBot
                             await _telegramLogger.Send
                                 (
                                     JSONReader.getValue("MediaLimit") ?? string.Empty, client, chatId
+                                );
+                        }
+                        else if (downloadAudioResult == LoadingStatus.NotValidLink)
+                        {
+                            await _telegramLogger.Send
+                                (
+                                    JSONReader.getValue("NotValidLink") ?? string.Empty, client, chatId
                                 );
                         }
 
@@ -297,11 +326,15 @@ namespace TelegramBot
                         catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.ErrorCode == 403)
                         {
                             ConsoleLogger.Log($"Exception: {ex.Message}", LogStatus.Error);
+
+                            result = LoadingStatus.Error;
                         }
                         catch (Exception ex)
                         {
                             _telegramLogger?.Send(ex.Message, client, chatId, LogStatus.Error);
                             ConsoleLogger.Log($"Exception: {ex.Message}", LogStatus.Error);
+
+                            result = LoadingStatus.Error;
                         }
                     }
                     else
@@ -317,10 +350,6 @@ namespace TelegramBot
             else
             {
                 ConsoleLogger.Log("Media path is null", LogStatus.Error);
-                await _telegramLogger.Send
-                (
-                    JSONReader.getValue("NotValidLink") ?? string.Empty, client, chatId
-                );
 
                 result = LoadingStatus.NotValidLink;
             }

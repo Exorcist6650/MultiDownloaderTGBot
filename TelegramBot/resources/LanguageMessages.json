@@ -1,18 +1,34 @@
 {
-  "ENG": {
-    "Greeting": "Hello, i'm Multi Downloader bot! I can install videos from youtube.com, tiktok.com, x.com and reddit.com.\nPlease, send a video link",
-    
-    "Searching": "Loading info...",
-    "NotValidLink": "Cannot download this! Maybe private access or invalid link",
-    "MediaLimit": "Limit to downloading - 50mb",
-    "LowQualityDownloadTrying": "Trying to download low quality",
+    "ENG": {
+        "Greeting": "Hello, i'm Multi Downloader bot! I can install videos from youtube.com, tiktok.com, x.com and reddit.com.\nPlease, send a video link",
 
-    "LoadingVideo": "Loading video...",
-    "LoadingAudio": "Loading audio...",
-    "InfoText": "Select the download type:",
+        "Searching": "Loading info...",
+        "NotValidLink": "Cannot download this! Maybe private access or invalid link",
+        "MediaLimit": "Limit to downloading - 50mb",
+        "LowQualityDownloadTrying": "Trying to download low quality",
 
-    "ButtonVideo": "Video",
-    "ButtonAudio": "Audio",
-    "ButtonCancel": "Cancel"
-  }
+        "LoadingVideo": "Loading video...",
+        "LoadingAudio": "Loading audio...",
+        "InfoText": "Select the download type:",
+
+        "ButtonVideo": "Video",
+        "ButtonAudio": "Audio",
+        "ButtonCancel": "Cancel"
+    },
+    "RU": {
+        "Greeting": "Hello, i'm Multi Downloader bot! I can install videos from youtube.com, tiktok.com, x.com and reddit.com.\nPlease, send a video link",
+
+        "Searching": "Loading info...",
+        "NotValidLink": "Cannot download this! Maybe private access or invalid link",
+        "MediaLimit": "Limit to downloading - 50mb",
+        "LowQualityDownloadTrying": "Trying to download low quality",
+
+        "LoadingVideo": "Loading video...",
+        "LoadingAudio": "Loading audio...",
+        "InfoText": "Select the download type:",
+
+        "ButtonVideo": "Video",
+        "ButtonAudio": "Audio",
+        "ButtonCancel": "Cancel"
+    }
 }
