@@ -94,6 +94,16 @@ namespace TelegramBot
                 await _telegramLogger.Send(JSONReader.getValue("Greeting") ?? string.Empty, client, chatId);
                 return;
             }
+            else if (userMessage == "/ENG")
+            {
+                JSONReader.Language = "ENG";
+                return;
+            }
+            else if (userMessage == "/RU")
+            {
+                JSONReader.Language = "RU";
+                return;
+            }
 
             // Sending searching message
             var searchingMessage = await _telegramLogger.Send(JSONReader.getValue("Searching") ?? string.Empty, client, chatId);
@@ -138,98 +148,108 @@ namespace TelegramBot
                     // User download video
                     case "action:video":
 
-                        // Loading message for user
-                        var loadingVideoMessage = await _telegramLogger.Send
-                            (
-                                JSONReader.getValue("LoadingVideo") ?? string.Empty, client, chatId
-                            );
-
-                        // Loading and sending video
-                        var downloadVideoResult = await SendDownloadedMediaAsync(client, chatId, videoUrl, DownloadType.VideoBest);
-
-                        // If video is bigger than 50mb trying to download merged
-                        if (downloadVideoResult == LoadingStatus.BiggerThanLimit)
-                        {
-                            // Limit message for user
-                            var biggerThanLimitMessage = await _telegramLogger.Send
-                                (
-                                    JSONReader.getValue("MediaLimit") ?? string.Empty, client, chatId
-                                );
-
-                            // Loading new video message for user
-                            var loadingMergedVideoMessage = await _telegramLogger.Send
-                                (
-                                    JSONReader.getValue("LowQualityDownloadTrying") ?? string.Empty, client, chatId
-                                );
-
-                            // Loading and sending merged video
-                            var downloadVideoMergedResult = await SendDownloadedMediaAsync(client, chatId, videoUrl, DownloadType.VideoMerged);
-
-                            // Limit message for user
-                            if (downloadVideoMergedResult == LoadingStatus.BiggerThanLimit)
-                            {
-                                await _telegramLogger.Send
-                                (
-                                    JSONReader.getValue("MediaLimit") ?? string.Empty, client, chatId
-                                );
-                            }
-
-                            // Deleting message for user
-                            await _telegramLogger.Delete(biggerThanLimitMessage, client, chatId);
-                            await _telegramLogger.Delete(loadingMergedVideoMessage, client, chatId);
-                        }
-                        else if (downloadVideoResult == LoadingStatus.NotValidLink)
-                        {
-                            await _telegramLogger.Send
-                                (
-                                    JSONReader.getValue("NotValidLink") ?? string.Empty, client, chatId
-                                );
-                        }
-
-                        // Deleting message for user
-                        await _telegramLogger.Delete(loadingVideoMessage, client, chatId);
+                        await SendVideo(videoUrl, client, chatId);
                         break;
-
 
                     // User download audio
                     case "action:audio":
-                        // Loading message for user
-                        var loadingAudioMessage = await _telegramLogger.Send
-                            (
-                                JSONReader.getValue("LoadingAudio") ?? string.Empty, client, chatId
-                            );
-
-                        // Loading and sending audio
-                        var downloadAudioResult = await SendDownloadedMediaAsync(client, chatId, videoUrl, DownloadType.Audio);
-
-                        // Limit message for user
-                        if (downloadAudioResult == LoadingStatus.BiggerThanLimit)
-                        {
-                            await _telegramLogger.Send
-                                (
-                                    JSONReader.getValue("MediaLimit") ?? string.Empty, client, chatId
-                                );
-                        }
-                        else if (downloadAudioResult == LoadingStatus.NotValidLink)
-                        {
-                            await _telegramLogger.Send
-                                (
-                                    JSONReader.getValue("NotValidLink") ?? string.Empty, client, chatId
-                                );
-                        }
-
-                        // Deleting message for user
-                        await _telegramLogger.Delete(loadingAudioMessage, client, chatId);
+                        await SendAudio(videoUrl, client, chatId);
                         break;
 
 
                     case "action:cancel":
                         // Deleting info message
-                        await client.DeleteMessage(chatId, cb?.Message?.Id ?? 0);
+                        await _telegramLogger.Delete(cb?.Message, client, chatId);
                         break;
                 }
             }
         }
+
+        public async Task SendVideo(string videoUrl, ITelegramBotClient client, ChatId chatId)
+        {
+            // Loading message for user
+            var loadingVideoMessage = await _telegramLogger.Send
+                (
+                    JSONReader.getValue("LoadingVideo") ?? string.Empty, client, chatId
+                );
+
+            // Loading and sending video
+            var downloadVideoResult = await SendDownloadedMediaAsync(client, chatId, videoUrl, DownloadType.VideoBest);
+
+            // If video is bigger than 50mb trying to download merged
+            if (downloadVideoResult == LoadingStatus.BiggerThanLimit)
+            {
+                // Limit message for user
+                var biggerThanLimitMessage = await _telegramLogger.Send
+                    (
+                        JSONReader.getValue("MediaLimit") ?? string.Empty, client, chatId
+                    );
+
+                // Loading new video message for user
+                var loadingMergedVideoMessage = await _telegramLogger.Send
+                    (
+                        JSONReader.getValue("LowQualityDownloadTrying") ?? string.Empty, client, chatId
+                    );
+
+                // Loading and sending merged video
+                var downloadVideoMergedResult = await SendDownloadedMediaAsync(client, chatId, videoUrl, DownloadType.VideoMerged);
+
+                // Limit message for user
+                if (downloadVideoMergedResult == LoadingStatus.BiggerThanLimit)
+                {
+                    await _telegramLogger.Send
+                    (
+                        JSONReader.getValue("MediaLimit") ?? string.Empty, client, chatId
+                    );
+                }
+
+                // Deleting message for user
+                await _telegramLogger.Delete(biggerThanLimitMessage, client, chatId);
+                await _telegramLogger.Delete(loadingMergedVideoMessage, client, chatId);
+            }
+            else if (downloadVideoResult == LoadingStatus.NotValidLink)
+            {
+                await _telegramLogger.Send
+                    (
+                        JSONReader.getValue("NotValidLink") ?? string.Empty, client, chatId
+                    );
+            }
+
+            // Deleting message for user
+            await _telegramLogger.Delete(loadingVideoMessage, client, chatId);
+        }
+
+        public async Task SendAudio(string videoUrl, ITelegramBotClient client, ChatId chatId)
+        {
+            // Loading message for user
+            var loadingAudioMessage = await _telegramLogger.Send
+                (
+                    JSONReader.getValue("LoadingAudio") ?? string.Empty, client, chatId
+                );
+
+            // Loading and sending audio
+            var downloadAudioResult = await SendDownloadedMediaAsync(client, chatId, videoUrl, DownloadType.Audio);
+
+            // Limit message for user
+            if (downloadAudioResult == LoadingStatus.BiggerThanLimit)
+            {
+                await _telegramLogger.Send
+                    (
+                        JSONReader.getValue("MediaLimit") ?? string.Empty, client, chatId
+                    );
+            }
+            else if (downloadAudioResult == LoadingStatus.NotValidLink)
+            {
+                await _telegramLogger.Send
+                    (
+                        JSONReader.getValue("NotValidLink") ?? string.Empty, client, chatId
+                    );
+            }
+
+            // Deleting message for user
+            await _telegramLogger.Delete(loadingAudioMessage, client, chatId);
+        }
+
 
         /// <summary>
         /// Downloading media by url and sending to user
