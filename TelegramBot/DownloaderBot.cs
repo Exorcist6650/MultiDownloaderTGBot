@@ -94,14 +94,15 @@ namespace TelegramBot
                 await _telegramLogger.Send(JSONReader.getValue("Greeting") ?? string.Empty, client, chatId);
                 return;
             }
-            else if (userMessage == "/ENG")
+
+            // Not a link
+            if (string.IsNullOrEmpty(userMessage) || !userMessage.Contains("http") || !userMessage.Contains("https"))
             {
-                JSONReader.Language = "ENG";
-                return;
-            }
-            else if (userMessage == "/RU")
-            {
-                JSONReader.Language = "RU";
+                await _telegramLogger.Send
+                    (
+                        JSONReader.getValue("NotALink") ?? string.Empty, client, chatId
+                    );
+
                 return;
             }
 

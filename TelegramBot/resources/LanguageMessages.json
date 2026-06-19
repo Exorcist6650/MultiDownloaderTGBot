@@ -4,6 +4,7 @@
 
         "Searching": "Loading info...",
         "NotValidLink": "Cannot download this! Maybe private access or invalid link",
+        "NotALink": "It's not a link!",
         "MediaLimit": "Limit to downloading - 50mb",
         "LowQualityDownloadTrying": "Trying to download low quality",
 
@@ -16,12 +17,13 @@
         "ButtonCancel": "Cancel"
     },
     "RU": {
-        "Greeting": "Привет, я Multi Downloader! Я могу загружать видео c youtube, tiktok, reddit, x\nОтправьте ссылку на видео",
+        "Greeting": "Привет, я Multi Downloader! Я могу загружать видео c youtube, tiktok, reddit, x\nОтправьте ссылку на видео:",
 
         "Searching": "Загружаю информацию...",
         "NotValidLink": "Не могу скачать это! Возможно некорректная ссылка или ограниченный доступ",
+        "NotALink": "Это не ссылка!",
         "MediaLimit": "Лимит загрузки - 50мб",
-        "LowQualityDownloadTrying": "Пробую загрузить в меньшем качества",
+        "LowQualityDownloadTrying": "Пробую загрузить в меньшем качестве",
 
         "LoadingVideo": "Загружаю видео...",
         "LoadingAudio": "Загружаю аудио...",

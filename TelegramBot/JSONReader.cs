@@ -11,7 +11,7 @@ namespace TelegramBot
     {
         private const string PATH_TO_JSON = "resources/LanguageMessages.json";
         private static readonly string _json = File.ReadAllText(PATH_TO_JSON);
-        public static string Language { get; set; } = "RU";
+        public static string Language { get; set; } = "ENG";
 
         public static string? getValue(string key)
         {
