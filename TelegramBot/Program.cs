@@ -1,8 +1,8 @@
-﻿using TelegramBot;
-using Managers;
+﻿using Managers;
+using Services;
 using Utils;
 
-namespace MyApp
+namespace TelegramBot
 {
     internal class Program
     {
@@ -15,19 +15,21 @@ namespace MyApp
 
             var host = new TgHost(token, new ConsoleLogger());
             var logger = new ConsoleLogger();
+            var downloadManager = new DownloadManager(logger);
+            var telegramDownloadService = new TelegramDownloadService( 
+                downloadManager, logger);
 
             var bot = new Bot
             (
-                host, 
-                new DownloadManager(logger),
+                host,
+                telegramDownloadService,
                 logger
             );
 
-            await bot.Init(); // Bot recieving start
+            await bot.Init(); // Start bot
 
 
             Console.ReadLine();
         }
-        
     }
 }

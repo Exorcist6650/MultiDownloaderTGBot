@@ -27,6 +27,7 @@ namespace Managers
             // Checking YT-DLP existing
             if (File.Exists(ytdlpPath))
             {
+                _logger.Log("Donwloading ffmpeg..."); // Log
                 await FFmpegDownload(); // Downloaded ffmpeg | ffprobe for yt-dlp
                 IsInit = true;
             }
