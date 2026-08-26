@@ -1,39 +1,30 @@
-﻿using System;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Configuration.UserSecrets;
-using Microsoft.Extensions.Configuration.EnvironmentVariables;
-using Telegram.Bot;
-using Telegram.Bot.Types;
-using TelegramBot;
+﻿using TelegramBot;
+using Managers;
+using Utils;
 
 namespace MyApp
 {
     internal class Program
     {
-        static string GetBotToken(string localVariableName)
-        {
-            var builder = new ConfigurationBuilder()
-                .AddUserSecrets<Program>()
-                .AddEnvironmentVariables();
-            
-            var config = builder.Build();
-            return config[localVariableName] ?? throw new NullReferenceException($"Not find a {localVariableName} key");
-        }
-
+        
         static async Task Main(string[] args)
         {
-            Host host = new Host(GetBotToken("BOT_TOKEN"), new ConsoleLogger());
+            // Get bot token from environment
+            if (Environment.GetEnvironmentVariable("BOT_TOKEN", EnvironmentVariableTarget.User) is not { } token)
+                throw new InvalidOperationException("Environment variable \"BOT_TOKEN\" not found");
 
+            var host = new TgHost(token, new ConsoleLogger());
+            var logger = new ConsoleLogger();
 
-            DownloaderBot downloaderBot = new DownloaderBot
+            var bot = new Bot
             (
                 host, 
-                new DownloadManager(),
-                new ConsoleLogger(), 
-                new TelegramLogger()
+                new DownloadManager(logger),
+                logger
             );
 
-            await downloaderBot.Init(); // Bot recieving start
+            await bot.Init(); // Bot recieving start
+
 
             Console.ReadLine();
         }
