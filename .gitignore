@@ -1,4 +1,6 @@
 bin
 obj
+logs
 .env
 .vs
+DefaultImage.jpg

@@ -30,8 +30,9 @@ namespace TelegramBot
 
         public async Task Init()
         {
-            await _telegramDownloadService.Init(); // Init download service
             await _host.Init(); // Start the bot
+            await _telegramDownloadService.Init(_host.Me.Username!); // Init download service
+            Console.WriteLine("Bot is started");
         }
 
         // Delegates
@@ -79,7 +80,7 @@ namespace TelegramBot
             }
             catch (Exception ex)
             {
-                _logger.Log(ex.Message, ELogStatus.Warning);
+                _logger.Log(ex.ToString(), ELogStatus.Warning);
             }
 
             // Parsing url 
@@ -99,7 +100,6 @@ namespace TelegramBot
                             client, 
                             chatId, 
                             videoUrl,
-                            _host.Me.Username!,
                             lang);
                         break;
 
@@ -109,7 +109,6 @@ namespace TelegramBot
                             client, 
                             chatId, 
                             videoUrl,
-                            _host.Me.Username!,
                             lang);
                         break;
 
@@ -132,8 +131,11 @@ namespace TelegramBot
             ELanguage language)
         {
             // Checking message a link
-            if (string.IsNullOrEmpty(message?.Text) || !message.Text.Contains("http") || !message.Text.Contains("https"))
+            if (string.IsNullOrEmpty(message?.Text) || 
+                !message.Text.Contains("http", StringComparison.OrdinalIgnoreCase) || 
+                !message.Text.Contains("https", StringComparison.OrdinalIgnoreCase))
             {
+                // Bot answer to null link
                 await MessageService.Send(client, chatId, new Message
                 { Text = ReplyReadService.GetReply("NotALink", language) }, _logger);
 

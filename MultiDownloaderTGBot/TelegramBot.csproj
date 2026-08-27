@@ -12,6 +12,7 @@
 		<PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.8" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.8" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.8" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
 		<PackageReference Include="Telegram.Bot" Version="22.10.0.1" />
 		<PackageReference Include="Xabe.FFmpeg.Downloader" Version="6.0.2" />
 		<None Include="tools\yt-dlp.exe">

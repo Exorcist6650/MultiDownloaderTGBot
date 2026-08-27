@@ -16,35 +16,26 @@ namespace Services
             }
             catch (Exception ex)
             {
-                logger.Log(ex.Message, ELogStatus.Warning);
+                logger.Log(ex.ToString(), ELogStatus.Warning);
             }
             return null;
         }
 
-        public static async Task<Message?> SendButtonMenu(
-            ITelegramBotClient client, 
-            ChatId chatId, 
-            InputFileStream inputFile, 
-            InlineKeyboardMarkup inlineKeyboard,
-            string caption, 
-            ILogger logger)
+        public static async Task<Message> SendButtonMenu(
+            ITelegramBotClient client,
+            ChatId chatId,
+            InputFile inputFile,
+            string caption,
+            InlineKeyboardMarkup inlineKeyboard)
         {
-            try
-            {
-                return await client.SendPhoto(
-                    chatId,
-                    inputFile,
-                    caption,
-                    replyMarkup: inlineKeyboard);
-            }
-            catch (Exception ex)
-            {
-                logger.Log(ex.Message, ELogStatus.Warning);
-            }
-            return null;
+            return await client.SendPhoto(
+                chatId,
+                inputFile,
+                caption,
+                replyMarkup: inlineKeyboard);
         }
 
-        public static async Task Remove 
+        public static async Task Remove
             (ITelegramBotClient client, ChatId chatId, Message message, ILogger logger)
         {
             try
@@ -53,7 +44,7 @@ namespace Services
             }
             catch (Exception ex)
             {
-                logger.Log(ex.Message, ELogStatus.Warning);
+                logger.Log(ex.ToString(), ELogStatus.Warning);
             }
         }
 

@@ -15,7 +15,7 @@ namespace Managers
 
         private readonly ILogger _logger = logger;
 
-        private bool IsInit = false;
+        private bool _isInit = false;
 
         // Formats
         private const string STANDARD_IMAGE_FORMAT = "jpg";
@@ -27,19 +27,19 @@ namespace Managers
             // Checking YT-DLP existing
             if (File.Exists(ytdlpPath))
             {
-                _logger.Log("Donwloading ffmpeg..."); // Log
+                Console.WriteLine("Donwloading ffmpeg..."); 
                 await FFmpegDownload(); // Downloaded ffmpeg | ffprobe for yt-dlp
-                IsInit = true;
+                _isInit = true;
             }
             else
                 throw new FileNotFoundException("yt-dlp file not found", ytdlpPath);
         }
 
         // Download file to temp and return info
-        public async Task<(string filePath, string fileTitle)?> DownloadToTempAsync
+        public async Task<(string FilePath, string FileTitle)?> DownloadToTempAsync
             (string url, EDownloadType downloadType)
         {
-            if (!IsInit) throw new InvalidOperationException("Download manager isn't init");
+            if (!_isInit) throw new InvalidOperationException("Download manager isn't init");
             if (string.IsNullOrWhiteSpace(url)) return null; // Empty url
 
             // Args for download
@@ -60,8 +60,10 @@ namespace Managers
         }
 
         // Get input file by file path
-        public InputFileStream? GetInputFile((string filePath, string title) fileInfo)
+        public InputFileStream GetInputFile((string FilePath, string FileTitle) fileInfo)
         {
+            if (!_isInit) throw new InvalidOperationException("Download manager isn't init");
+
             // Variables from tuple
             var (path, title) = fileInfo;
 
@@ -111,7 +113,7 @@ namespace Managers
 
 
         // Return a file info from YT-DLP output
-        private (string filePath, string fileTitle)?
+        private (string FilePath, string FileTitle)?
             GetFileInfoFromOutput(string output, EDownloadType downloadType)
         {
             // Parsing JSON string from output
@@ -142,6 +144,9 @@ namespace Managers
                     case EDownloadType.Audio:
                         downloadedFilePath = Path.ChangeExtension(downloadedFilePath, STANDARD_AUDIO_FORMAT);
                         break;
+
+                    default: throw new ArgumentException("Unknown download type", nameof(downloadType));
+
                 }
 
                 // Searching file title

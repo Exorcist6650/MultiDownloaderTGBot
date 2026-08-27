@@ -23,7 +23,7 @@ namespace TelegramBot
             Me = await _bot.GetMe(); // Get bot info
             _bot.StartReceiving(UpdateHandler, ErrorHandler);
 
-            _logger.Log("Start receiving"); // Log
+            Console.WriteLine("Start receiving"); // Log
         }
 
         // Update handler
@@ -39,19 +39,21 @@ namespace TelegramBot
                     OnCallback?.Invoke(client, callback); // Event calling
 
                     _logger.Log(
-                        $"Button: {callback.Data} | ID: {message?.Chat.Id} | User: {message?.Chat.Username}"); // Log
+                        $"Button: {callback.Data} | ID: {callback.Message?.Chat.Id} | User: {callback.From.Username}"); // Log
                 }
             }
             // Standart message
             else
             {
-                _logger.Log(
-                    $"Message: {message?.Text} | ID: {message?.Chat.Id} | User: {message?.Chat.Username}"); // Log
+                // Log only for text message
+                if (message?.Text is not null)
+                    _logger.Log(
+                        $"Message: {message?.Text} | ID: {message?.Chat.Id} | User: {message?.Chat.Username}"); // Log
 
 
                 OnMessage?.Invoke(client, update); // Event calling
             }
-
+            await Task.CompletedTask;
         }
         private async Task ErrorHandler(ITelegramBotClient client, Exception exception, HandleErrorSource source, CancellationToken token)
         {
