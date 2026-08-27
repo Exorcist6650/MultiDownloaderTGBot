@@ -62,7 +62,7 @@ namespace Utils
                 _ => throw new ArgumentException("Unknown log status", nameof(status))
             };
 
-            var logMessage = $"{text} | {DateTime.UtcNow}";
+            var logMessage = $"{statusText}: {text} | {DateTime.UtcNow}";
 
             lock (_lock)
             {

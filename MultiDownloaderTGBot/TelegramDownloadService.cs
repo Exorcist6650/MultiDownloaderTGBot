@@ -1,9 +1,10 @@
-﻿using System;
-using Managers;
+﻿using Managers;
+using System;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 using Utils;
+using Xabe.FFmpeg;
 
 namespace Services
 {
@@ -17,7 +18,7 @@ namespace Services
         private bool _isInit = false;
         private string _botUsername;
 
-        private const string PATH_TO_DEFAULT_IMAGE = "resources\\DefaultImage.jpg";
+        private const string PATH_TO_DEFAULT_IMAGE = "resources\\DefaultImage.png";
         private const long FILE_BYTES_LIMIT = 49_500 * 1024L;
 
 
@@ -149,8 +150,13 @@ namespace Services
                 previewInfo.FileTitle);
 
             // Get preview input file
-            var inputFile = _downloadManager.GetInputFile((filePath, title));
-            
+            // Get input file
+            if (_downloadManager.GetInputFile((filePath, title)) is not { } inputFile)
+            {
+                _logger.Log("Input file is null", ELogStatus.Error);
+                return ELoadingStatus.Error;
+            }
+
             // Dispose input file
             try
             {
@@ -193,7 +199,11 @@ namespace Services
                 return ELoadingStatus.NotValidLink;
 
             // Get input file
-            var inputFile = _downloadManager.GetInputFile(mediaInfo);
+            if (_downloadManager.GetInputFile(mediaInfo) is not { } inputFile)
+            {
+                _logger.Log("Input file is null", ELogStatus.Error);
+                return ELoadingStatus.Error;
+            }
 
             // Dispose input file
             try

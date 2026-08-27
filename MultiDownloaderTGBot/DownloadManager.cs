@@ -11,7 +11,8 @@ namespace Managers
     public class DownloadManager(ILogger logger)
     {
         // Fields
-        private readonly string ytdlpPath = Path.Combine(Directory.GetCurrentDirectory(), "tools", "yt-dlp.exe");
+        private readonly string _toolsDirectory = Path.Combine(Directory.GetCurrentDirectory(), "tools");
+        private string _ytdlpPath;
 
         private readonly ILogger _logger = logger;
 
@@ -24,15 +25,18 @@ namespace Managers
 
         public async Task Init()
         {
+            // Path to YT-DLP
+            _ytdlpPath = Path.Combine(_toolsDirectory, "yt-dlp.exe");
+
             // Checking YT-DLP existing
-            if (File.Exists(ytdlpPath))
+            if (File.Exists(_ytdlpPath))
             {
                 Console.WriteLine("Donwloading ffmpeg..."); 
                 await FFmpegDownload(); // Downloaded ffmpeg | ffprobe for yt-dlp
                 _isInit = true;
             }
             else
-                throw new FileNotFoundException("yt-dlp file not found", ytdlpPath);
+                throw new FileNotFoundException("yt-dlp file not found", _ytdlpPath);
         }
 
         // Download file to temp and return info
@@ -60,16 +64,17 @@ namespace Managers
         }
 
         // Get input file by file path
-        public InputFileStream GetInputFile((string FilePath, string FileTitle) fileInfo)
+        public InputFileStream? GetInputFile((string FilePath, string FileTitle) fileInfo)
         {
             if (!_isInit) throw new InvalidOperationException("Download manager isn't init");
+            if (!File.Exists(fileInfo.FilePath)) return null;
 
             // Variables from tuple
             var (path, title) = fileInfo;
 
             // Open file stream
-            var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-
+                var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            
             // Input file
             return InputFile.FromStream(fileStream, title);
         }
@@ -78,8 +83,8 @@ namespace Managers
 
         // Download FFmpeg
         private async Task FFmpegDownload() =>
-            // Download ffmpeg to chache
-            await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official);
+            // Download ffmpeg
+            await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official, _toolsDirectory);
 
 
         // Run YT-DLP
@@ -88,7 +93,7 @@ namespace Managers
         {
             var processStartInfo = new ProcessStartInfo
             {
-                FileName = ytdlpPath,
+                FileName = _ytdlpPath,
                 Arguments = args,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -168,27 +173,42 @@ namespace Managers
                 Path.GetTempPath(),
                 $"{Path.GetFileNameWithoutExtension(Path.GetRandomFileName())}.%(ext)s");
 
+            string ffmpegArgs = $"--ffmpeg-location \"{_toolsDirectory}\"";
+
             const string commonArgs = "--no-playlist --newline --print-json --no-warnings";
+
 
             string args = downloadType switch
             {
                 EDownloadType.Thumbnail =>
-                    $"{commonArgs} --skip-download --write-thumbnail --convert-thumbnails " +
-                    $"{STANDARD_IMAGE_FORMAT} -o\"{outputTemplate}\" \"{url}\"",
+                    $"{commonArgs} " +
+                    $"--skip-download --write-thumbnail " +
+                    $"--convert-thumbnails {STANDARD_IMAGE_FORMAT} " +
+                    $"-o \"{outputTemplate}\" \"{url}\"",
 
                 EDownloadType.VideoBest =>
-                    $"{commonArgs} --merge-output-format {STANDARD_VIDEO_FORMAT} " +
-                    $"-f \"bestvideo+bestaudio/best\" -o\"{outputTemplate}\" \"{url}\"",
+                    $"{commonArgs} {ffmpegArgs} " +
+                    $"--merge-output-format {STANDARD_VIDEO_FORMAT} " +
+                    $"-f \"bv*+ba/b\" " +
+                    $"-o \"{outputTemplate}\" \"{url}\"",
 
                 EDownloadType.VideoMerged =>
-                    $"{commonArgs} -f b -o\"{outputTemplate}\" \"{url}\"",
+                    $"{commonArgs} {ffmpegArgs} " +
+                    $"-f \"bv*+ba/b\" " +
+                    $"-o \"{outputTemplate}\" \"{url}\"",
 
                 EDownloadType.Audio =>
-                    $"{commonArgs} --extract-audio --audio-format {STANDARD_AUDIO_FORMAT} " +
-                    $"-f bestaudio,best -o\"{outputTemplate}\" \"{url}\"",
+                    $"{commonArgs} {ffmpegArgs} " +
+                    $"--extract-audio " +
+                    $"--audio-format {STANDARD_AUDIO_FORMAT} " +
+                    $"-f \"bestaudio/best\" " +
+                    $"-o \"{outputTemplate}\" \"{url}\"",
 
-                _ => throw new ArgumentException("Unknown download type", nameof(downloadType))
+                _ => throw new ArgumentException(
+                    "Unknown download type",
+                    nameof(downloadType))
             };
+
 
             return args;
         }
