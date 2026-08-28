@@ -21,9 +21,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Update="resources\DefaultImage.jpg">
-	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </None>
 	  <None Update="resources\DefaultImage.png">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </None>

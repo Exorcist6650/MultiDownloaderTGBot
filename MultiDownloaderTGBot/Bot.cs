@@ -38,14 +38,18 @@ namespace TelegramBot
         // Delegates
         private async void OnMessage(ITelegramBotClient client, Update update)
         {
+            // Drop message while services is not init
+            if (!_telegramDownloadService.IsInit) return;
+
+            // Variables
             if (update?.Message is not { } message) return;
             if (update?.Message.Chat.Id is not { } chatId) return;
 
             // User language
-            var lang = message.From?.LanguageCode switch
+            var lang = message.From?.LanguageCode?.ToLowerInvariant() switch
             {
-                "en" => ELanguage.En,
-                "ru" => ELanguage.Ru,
+                "en" or "en-us" or "en-gb" => ELanguage.En,
+                "ru" or "ru-ru" => ELanguage.Ru,
                 _ => ELanguage.En
             };
 
@@ -61,15 +65,19 @@ namespace TelegramBot
 
         private async void OnCallback(ITelegramBotClient client, CallbackQuery cb)
         {
+            // Drop message while services is not init
+            if (!_telegramDownloadService.IsInit) return;
+
+            // Variables
             if (cb?.Message is not { } message) return;
             if (message.Chat?.Id is not { } chatId) return;
             if (message.Caption is not { } caption) return;
 
             // User language
-            var lang = message.From?.LanguageCode switch
+            var lang = cb.From.LanguageCode?.ToLowerInvariant() switch
             {
-                "en" => ELanguage.En,
-                "ru" => ELanguage.Ru,
+                "en" or "en-us" or "en-gb" => ELanguage.En,
+                "ru" or "ru-ru" => ELanguage.Ru,
                 _ => ELanguage.En
             };
 

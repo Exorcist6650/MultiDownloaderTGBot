@@ -34,7 +34,7 @@ namespace Utils
 
     public class FileLogger : ILogger
     {
-        private readonly object _lock = new();
+        private readonly Lock _lock = new();
 
         private readonly string _logsDirectory = "logs";
         const long MAX_BYTES_FILE_SIZE = 10 * 1024 * 1024L;

@@ -118,7 +118,7 @@ namespace Managers
 
 
         // Return a file info from YT-DLP output
-        private (string FilePath, string FileTitle)?
+        private static (string FilePath, string FileTitle)?
             GetFileInfoFromOutput(string output, EDownloadType downloadType)
         {
             // Parsing JSON string from output
@@ -132,32 +132,25 @@ namespace Managers
             // Searching file path
             if (root.TryGetProperty("filename", out var filePath) && filePath.ValueKind == JsonValueKind.String)
             {
-                // Filepath with .temp format
-                var downloadedFilePath = filePath.ToString();
-
-                switch (downloadType)
+                // Path to temp file
+                var loadPath = Path.ChangeExtension(filePath.ToString(), downloadType switch
                 {
-                    case EDownloadType.Thumbnail:
-                        downloadedFilePath = Path.ChangeExtension(downloadedFilePath, STANDARD_IMAGE_FORMAT);
-                        break;
-                    case EDownloadType.VideoBest:
-                        downloadedFilePath = Path.ChangeExtension(downloadedFilePath, STANDARD_VIDEO_FORMAT);
-                        break;
-                    case EDownloadType.VideoMerged:
-                        downloadedFilePath = Path.ChangeExtension(downloadedFilePath, STANDARD_VIDEO_FORMAT);
-                        break;
-                    case EDownloadType.Audio:
-                        downloadedFilePath = Path.ChangeExtension(downloadedFilePath, STANDARD_AUDIO_FORMAT);
-                        break;
+                    EDownloadType.Thumbnail =>
+                        STANDARD_IMAGE_FORMAT,
 
-                    default: throw new ArgumentException("Unknown download type", nameof(downloadType));
+                    EDownloadType.Video =>
+                        STANDARD_VIDEO_FORMAT,
 
-                }
+                    EDownloadType.Audio =>
+                        STANDARD_AUDIO_FORMAT,
+
+                    _ => throw new ArgumentException("Unknown download type", nameof(downloadType))
+                });
 
                 // Searching file title
                 if (root.TryGetProperty("title", out var title) && title.ValueKind == JsonValueKind.String)
                 {
-                    return (downloadedFilePath, title.ToString()); // Path to downloaded file with video title
+                    return (loadPath, title.ToString()); // Path to downloaded file with video title
                 }
             }
 
@@ -186,14 +179,10 @@ namespace Managers
                     $"--convert-thumbnails {STANDARD_IMAGE_FORMAT} " +
                     $"-o \"{outputTemplate}\" \"{url}\"",
 
-                EDownloadType.VideoBest =>
+                EDownloadType.Video =>
                     $"{commonArgs} {ffmpegArgs} " +
-                    $"--merge-output-format {STANDARD_VIDEO_FORMAT} " +
-                    $"-f \"bv*+ba/b\" " +
-                    $"-o \"{outputTemplate}\" \"{url}\"",
-
-                EDownloadType.VideoMerged =>
-                    $"{commonArgs} {ffmpegArgs} " +
+                    $"--merge-output-format mp4 " +
+                    $"--recode-video mp4 " +
                     $"-f \"bv*+ba/b\" " +
                     $"-o \"{outputTemplate}\" \"{url}\"",
 

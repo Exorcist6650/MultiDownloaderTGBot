@@ -3,8 +3,7 @@
     public enum EDownloadType : byte
     {
         Thumbnail,
-        VideoBest,
-        VideoMerged,
+        Video,
         Audio,
     }
 

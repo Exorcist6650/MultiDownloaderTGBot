@@ -15,7 +15,7 @@ namespace TelegramBot
 
         // Fields
         public User Me { get; private set; } // Bot info
-        private readonly TelegramBotClient _bot = new TelegramBotClient(token); // Bot instance
+        private readonly TelegramBotClient _bot = new (token); // Bot instance
         private readonly ILogger _logger = logger;
 
         public async Task Init()

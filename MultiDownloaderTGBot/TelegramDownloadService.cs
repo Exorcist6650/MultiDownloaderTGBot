@@ -15,7 +15,7 @@ namespace Services
         private readonly DownloadManager _downloadManager = downloadManager;
         private readonly ILogger _logger = logger;
 
-        private bool _isInit = false;
+        public bool IsInit { get; private set; } = false;
         private string _botUsername;
 
         private const string PATH_TO_DEFAULT_IMAGE = "resources\\DefaultImage.png";
@@ -33,7 +33,7 @@ namespace Services
             await _downloadManager.Init();
 
             _botUsername = botUsername;
-            _isInit = true;
+            IsInit = true;
         }
 
         public async Task DownloadSendVideoProcess(
@@ -42,7 +42,7 @@ namespace Services
            string videoUrl,
            ELanguage language)
         {
-            if (!_isInit) throw new InvalidOperationException("TelegramDownloadService isn't init");
+            if (!IsInit) throw new InvalidOperationException("TelegramDownloadService isn't init");
 
             // Loading message for user
             var loadingVideoMessage = await MessageService.Send(client, chatId, new Message
@@ -55,38 +55,13 @@ namespace Services
                     client,
                     chatId,
                     videoUrl,
-                    EDownloadType.VideoBest);
+                    EDownloadType.Video);
 
-                // If video is bigger than 50mb trying to download merged
+                // Bot answer to bigger than limit
                 if (downloadVideoResult == ELoadingStatus.BiggerThanLimit)
                 {
-                    // Retry message for user
-                    var retryMessage = await MessageService.Send(client, chatId, new Message
-                    { Text = ReplyReadService.GetReply("LowQualityDownloadTrying", language) }, _logger);
-
-                    if (retryMessage is not null)
-                    {
-                        // Loading and sending merged video
-                        var downloadMergedResult = await DownloadSendProcessAsync(
-                            client,
-                            chatId,
-                            videoUrl,
-                            EDownloadType.VideoMerged);
-
-                        // Bot answer to bigger than limit
-                        if (downloadMergedResult == ELoadingStatus.BiggerThanLimit)
-                            await MessageService.Send(client, chatId, new Message
-                            { Text = ReplyReadService.GetReply("MediaLimit", language) }, _logger);
-
-                        // Bot answer to error
-                        else if (downloadMergedResult is ELoadingStatus.Error or ELoadingStatus.NotValidLink)
-                            await MessageService.Send(client, chatId, new Message
-                            { Text = ReplyReadService.GetReply("NotValidLink", language) }, _logger);
-
-                        // Deleting retry message for user
-                        await MessageService.Remove(client, chatId, retryMessage, _logger);
-
-                    }
+                    await MessageService.Send(client, chatId, new Message
+                    { Text = ReplyReadService.GetReply("MediaLimit", language) }, _logger);
                 }
 
                 // Bot answer to error
@@ -105,7 +80,7 @@ namespace Services
             string videoUrl,
             ELanguage language)
         {
-            if (!_isInit) throw new InvalidOperationException("TelegramDownloadService isn't init");
+            if (!IsInit) throw new InvalidOperationException("TelegramDownloadService isn't init");
 
             // Loading message for user
             var loadingAudioMessage = await MessageService.Send(client, chatId, new Message
@@ -138,7 +113,7 @@ namespace Services
         public async Task<ELoadingStatus> SendLoadingMenuProcess(
             ITelegramBotClient client, ChatId chatId, string url, ELanguage language)
         {
-            if (!_isInit) throw new InvalidOperationException("TelegramDownloadService isn't init");
+            if (!IsInit) throw new InvalidOperationException("TelegramDownloadService isn't init");
 
             // Download preview to temp and get info
             if (await _downloadManager.DownloadToTempAsync(url, EDownloadType.Thumbnail) is not { } previewInfo)
@@ -149,7 +124,6 @@ namespace Services
                 (File.Exists(previewInfo.FilePath) ? previewInfo.FilePath : PATH_TO_DEFAULT_IMAGE,
                 previewInfo.FileTitle);
 
-            // Get preview input file
             // Get input file
             if (_downloadManager.GetInputFile((filePath, title)) is not { } inputFile)
             {
@@ -192,7 +166,7 @@ namespace Services
             string url,
             EDownloadType downloadType)
         {
-            if (!_isInit) throw new InvalidOperationException("TelegramDownloadService isn't init");
+            if (!IsInit) throw new InvalidOperationException("TelegramDownloadService isn't init");
 
             // Download media to temp and get info
             if (await _downloadManager.DownloadToTempAsync(url, downloadType) is not { } mediaInfo)
@@ -202,6 +176,7 @@ namespace Services
             if (_downloadManager.GetInputFile(mediaInfo) is not { } inputFile)
             {
                 _logger.Log("Input file is null", ELogStatus.Error);
+                DeleteTempFile(mediaInfo.FilePath);
                 return ELoadingStatus.Error;
             }
 
@@ -236,7 +211,7 @@ namespace Services
 
         // PRIVATE
 
-        private async Task<Message> SendLoadingMenuAsync(
+        private static async Task<Message> SendLoadingMenuAsync(
             ITelegramBotClient client, 
             ChatId chatId, 
             InputFile inputFile,
@@ -269,7 +244,7 @@ namespace Services
                 EDownloadType.Thumbnail =>  
                 await client.SendPhoto(chatId, inputFile, caption),
 
-                EDownloadType.VideoMerged or EDownloadType.VideoBest =>     
+                EDownloadType.Video =>     
                 await client.SendVideo(chatId, inputFile, caption),
 
                 EDownloadType.Audio => 
@@ -291,7 +266,7 @@ namespace Services
             }
         }
 
-        private InlineKeyboardMarkup BuildLoadingMenuKeyboard(ELanguage language) =>
+        private static InlineKeyboardMarkup BuildLoadingMenuKeyboard(ELanguage language) =>
             new(
             [
                 [

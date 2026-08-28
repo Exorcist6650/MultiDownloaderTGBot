@@ -10,7 +10,7 @@ namespace TelegramBot
     public class Program
     {
         
-        static async Task Main(string[] args)
+        static async Task Main()
         {
             var host = Host.CreateDefaultBuilder().ConfigureServices((context, services) =>
             {
