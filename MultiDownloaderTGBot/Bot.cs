@@ -1,4 +1,5 @@
-﻿using Managers;
+﻿using System.Collections.Concurrent;
+using Managers;
 using Services;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -12,6 +13,8 @@ namespace TelegramBot
         private readonly TgHost _host;
         private readonly TelegramDownloadService _telegramDownloadService;
         private readonly ILogger _logger;
+
+        private static readonly ConcurrentDictionary<string, SemaphoreSlim> _downloadBlockers = new();
 
         public Bot(
             TgHost host,
@@ -35,7 +38,9 @@ namespace TelegramBot
             Console.WriteLine("Bot is started");
         }
 
-        // Delegates
+        // DELEGATES
+
+
         private async void OnMessage(ITelegramBotClient client, Update update)
         {
             // Drop message while services is not init
@@ -70,7 +75,7 @@ namespace TelegramBot
 
             // Variables
             if (cb?.Message is not { } message) return;
-            if (message.Chat?.Id is not { } chatId) return;
+            if (cb?.From.Id is not { } chatId) return;
             if (message.Caption is not { } caption) return;
 
             // User language
@@ -81,54 +86,79 @@ namespace TelegramBot
                 _ => ELanguage.En
             };
 
-            // Answer for UI
-            try
-            {
-                await client.AnswerCallbackQuery(cb.Id, "✨");
-            }
-            catch (Exception ex)
-            {
-                _logger.Log(ex.ToString(), ELogStatus.Warning);
-            }
+            // URL parse key
+            string keyToParse = "\nLINK: ";
+            var prefixParse = caption.IndexOf(keyToParse);
 
-            // Parsing url 
-            string key = "\nLINK: ";
-            var prefix = caption.IndexOf(key);
-
-            if (prefix >= 0)
+            if (prefixParse >= 0)
             {
-                var videoUrl = caption[(prefix + key.Length)..]; // URL from caption
+                // URL parse from caption
+                var videoUrl = caption[(prefixParse + keyToParse.Length)..];
 
-                switch (cb?.Data)
+                var lockKey = $"{chatId}:{videoUrl}"; // Key to lock download
+
+                // Lock object
+                var semaphore = _downloadBlockers.GetOrAdd(lockKey, _ => new SemaphoreSlim(1, 1));
+
+                try
                 {
-                    // Download video
-                    case "action:video":
+                    // Case download is lock
+                    if (!semaphore.Wait(0))
+                    {
+                        // Answer for UI
+                        await client.AnswerCallbackQuery(
+                            cb.Id,
+                            ReplyReadService.GetReply("ButtonLock", lang),
+                            showAlert: true);
+                        return;
+                    }
 
-                        await _telegramDownloadService.DownloadSendVideoProcess(
-                            client, 
-                            chatId, 
-                            videoUrl,
-                            lang);
-                        break;
+                    // Answer for UI
+                    await client.AnswerCallbackQuery(cb.Id, "✨");
 
-                    // Download audio
-                    case "action:audio":
-                        await _telegramDownloadService.DownloadSendAudioProcess(
-                            client, 
-                            chatId, 
-                            videoUrl,
-                            lang);
-                        break;
+                    switch (cb?.Data)
+                    {
+                        // Download video
+                        case "action:video":
+
+                            await _telegramDownloadService.DownloadSendVideoProcess(
+                                client,
+                                chatId,
+                                videoUrl,
+                                lang);
+                            break;
+
+                        // Download audio
+                        case "action:audio":
+                            await _telegramDownloadService.DownloadSendAudioProcess(
+                                client,
+                                chatId,
+                                videoUrl,
+                                lang);
+                            break;
 
 
-                    // Deleting info message
-                    case "action:cancel":
-                        await MessageService.Remove(client, chatId, cb.Message, _logger);
-                        break;
+                        // Deleting info message
+                        case "action:cancel":
+                            await MessageService.Remove(client, chatId, cb.Message, _logger);
+                            break;
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    _logger.Log(ex.ToString(), ELogStatus.Error);
+                }
+                finally
+                {
+                    semaphore.Release(); // Unlock downloading
+
+                    // Clear dictionary (GC will clear an object automaticly)
+                    _downloadBlockers.TryRemove(new KeyValuePair<string, SemaphoreSlim>(
+                        lockKey, semaphore));
                 }
             }
         }
-
 
         // METHODS
 
@@ -139,8 +169,8 @@ namespace TelegramBot
             ELanguage language)
         {
             // Checking message a link
-            if (string.IsNullOrEmpty(message?.Text) || 
-                !message.Text.Contains("http", StringComparison.OrdinalIgnoreCase) || 
+            if (string.IsNullOrEmpty(message?.Text) ||
+                !message.Text.Contains("http", StringComparison.OrdinalIgnoreCase) ||
                 !message.Text.Contains("https", StringComparison.OrdinalIgnoreCase))
             {
                 // Bot answer to null link

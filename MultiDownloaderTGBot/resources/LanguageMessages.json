@@ -14,7 +14,8 @@
 
         "ButtonVideo": "Video",
         "ButtonAudio": "Audio",
-        "ButtonCancel": "Cancel"
+        "ButtonCancel": "Cancel",
+        "ButtonLock":  "Wait for downloading to this URL..."
     },
     "ru": {
         "Greeting": "Привет, я Multi Downloader! Я могу загружать видео c youtube, tiktok, reddit, x\nОтправьте ссылку на видео:",
@@ -31,6 +32,7 @@
 
         "ButtonVideo": "Видео",
         "ButtonAudio": "Аудио",
-        "ButtonCancel": "Отмена"
+        "ButtonCancel": "Отмена",
+        "ButtonLock": "Дождитесь загрузки по этой ссылке..."
     }
 }
