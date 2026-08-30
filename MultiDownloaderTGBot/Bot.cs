@@ -68,18 +68,18 @@ namespace TelegramBot
             await HandleFlowAsync(client, chatId, message, lang);
         }
 
-        private async void OnCallback(ITelegramBotClient client, CallbackQuery cb)
+        private async void OnCallback(ITelegramBotClient client, CallbackQuery callback)
         {
             // Drop message while services is not init
             if (!_telegramDownloadService.IsInit) return;
 
             // Variables
-            if (cb?.Message is not { } message) return;
-            if (cb?.From.Id is not { } chatId) return;
+            if (callback?.Message is not { } message) return;
+            if (callback?.From.Id is not { } chatId) return;
             if (message.Caption is not { } caption) return;
 
             // User language
-            var lang = cb.From.LanguageCode?.ToLowerInvariant() switch
+            var lang = callback.From.LanguageCode?.ToLowerInvariant() switch
             {
                 "en" or "en-us" or "en-gb" => ELanguage.En,
                 "ru" or "ru-ru" => ELanguage.Ru,
@@ -100,23 +100,31 @@ namespace TelegramBot
                 // Lock object
                 var semaphore = _downloadBlockers.GetOrAdd(lockKey, _ => new SemaphoreSlim(1, 1));
 
-                try
+                // Case download is lock
+                if (!semaphore.Wait(0))
                 {
-                    // Case download is lock
-                    if (!semaphore.Wait(0))
+                    try
                     {
                         // Answer for UI
                         await client.AnswerCallbackQuery(
-                            cb.Id,
+                            callback.Id,
                             ReplyReadService.GetReply("ButtonLock", lang),
                             showAlert: true);
-                        return;
+
                     }
+                    catch (Exception ex)
+                    {
+                        _logger.Log(ex.ToString(), ELogStatus.Warning);
+                    }
+                    return;
+                }
 
+                try
+                {
                     // Answer for UI
-                    await client.AnswerCallbackQuery(cb.Id, "✨");
+                    await client.AnswerCallbackQuery(callback.Id, "✨");
 
-                    switch (cb?.Data)
+                    switch (callback?.Data)
                     {
                         // Download video
                         case "action:video":
@@ -140,7 +148,7 @@ namespace TelegramBot
 
                         // Deleting info message
                         case "action:cancel":
-                            await MessageService.Remove(client, chatId, cb.Message, _logger);
+                            await MessageService.Remove(client, chatId, callback.Message, _logger);
                             break;
                     }
 
