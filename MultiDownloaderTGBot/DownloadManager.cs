@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using Telegram.Bot.Types;
@@ -26,7 +27,11 @@ namespace Managers
         public async Task Init()
         {
             // Path to YT-DLP
-            _ytdlpPath = Path.Combine(_toolsDirectory, "yt-dlp.exe");
+            var ytdlpVersion = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? "yt-dlp.exe"
+                : "yt-dlp";
+
+            _ytdlpPath = Path.Combine(_toolsDirectory, ytdlpVersion);
 
             // Checking YT-DLP existing
             if (File.Exists(_ytdlpPath))
