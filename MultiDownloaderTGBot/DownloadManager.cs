@@ -11,7 +11,7 @@ namespace Managers
     public class DownloadManager(ILogger logger)
     {
         // Fields
-        private readonly string _toolsDirectory = Path.Combine(Directory.GetCurrentDirectory(), "tools");
+        private readonly string _toolsDirectory = Path.Combine(AppContext.BaseDirectory, "tools");
         private string _ytdlpPath;
 
         private readonly ILogger _logger = logger;

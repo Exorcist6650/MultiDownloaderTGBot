@@ -1,6 +1,6 @@
 {
     "en": {
-        "Greeting": "Hello, i'm Multi Downloader bot! I can download videos from youtube.com, tiktok.com, x.com and reddit.com.\nPlease, send a video link:",
+        "Greeting": "Hello, i'm Multi Downloader bot! I can download videos from Youtube, Tiktok, Reddit and X.\nPlease, send a video link:",
 
         "Search": "Loading info...",
         "NotValidLink": "Cannot download this! Maybe private access or invalid link.",
@@ -15,10 +15,10 @@
         "ButtonVideo": "Video",
         "ButtonAudio": "Audio",
         "ButtonCancel": "Cancel",
-        "ButtonLock":  "Wait for downloading to this URL..."
+        "ButtonLock": "Wait for downloading to this URL..."
     },
     "ru": {
-        "Greeting": "Привет, я Multi Downloader! Я могу загружать видео c youtube, tiktok, reddit, x\nОтправьте ссылку на видео:",
+        "Greeting": "Привет, я Multi Downloader! Я могу загружать видео c Youtube, Tiktok, Reddit и X\nОтправьте ссылку на видео:",
 
         "Search": "Загружаю информацию...",
         "NotValidLink": "Не могу скачать это! Возможно некорректная ссылка или ограниченный доступ.",

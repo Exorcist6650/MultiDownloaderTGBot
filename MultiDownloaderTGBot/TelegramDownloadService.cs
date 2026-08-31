@@ -18,7 +18,11 @@ namespace Services
         public bool IsInit { get; private set; } = false;
         private string _botUsername;
 
-        private const string PATH_TO_DEFAULT_IMAGE = "resources\\DefaultImage.png";
+        private readonly string PATH_TO_DEFAULT_IMAGE = Path.Combine(
+            AppContext.BaseDirectory, 
+            "resources", 
+            "DefaultImage.png");
+
         private const long FILE_BYTES_LIMIT = 49_500 * 1024L;
 
 
