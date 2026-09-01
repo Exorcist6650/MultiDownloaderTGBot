@@ -13,7 +13,7 @@ namespace Managers
     {
         // Fields
         private readonly string _toolsDirectory = Path.Combine(AppContext.BaseDirectory, "tools");
-        private string _ytdlpPath;
+        private string _ytdlpPath = string.Empty;
 
         private readonly ILogger _logger = logger;
 
@@ -29,7 +29,7 @@ namespace Managers
             // Path to YT-DLP
             var ytdlpVersion = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? "yt-dlp.exe"
-                : "yt-dlp";
+                : "yt-dlp_linux";
 
             _ytdlpPath = Path.Combine(_toolsDirectory, ytdlpVersion);
 
@@ -179,7 +179,7 @@ namespace Managers
             string args = downloadType switch
             {
                 EDownloadType.Thumbnail =>
-                    $"{commonArgs} " +
+                    $"{commonArgs} {ffmpegArgs} " +
                     $"--skip-download --write-thumbnail " +
                     $"--convert-thumbnails {STANDARD_IMAGE_FORMAT} " +
                     $"-o \"{outputTemplate}\" \"{url}\"",

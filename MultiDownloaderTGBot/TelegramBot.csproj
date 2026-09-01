@@ -27,7 +27,7 @@
 	  <None Update="resources\LanguageMessages.json">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </None>
-	  <None Update="tools\yt-dlp">
+	  <None Update="tools\yt-dlp_linux">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </None>
 	</ItemGroup>
