@@ -24,14 +24,12 @@ namespace Services
         public static async Task<Message> SendButtonMenu(
             ITelegramBotClient client,
             ChatId chatId,
-            InputFile inputFile,
-            string caption,
+            string text,
             InlineKeyboardMarkup inlineKeyboard)
         {
-            return await client.SendPhoto(
+            return await client.SendMessage(
                 chatId,
-                inputFile,
-                caption,
+                text,
                 replyMarkup: inlineKeyboard);
         }
 

@@ -18,21 +18,13 @@ namespace Services
         public bool IsInit { get; private set; } = false;
         private string _botUsername;
 
-        private readonly string PATH_TO_DEFAULT_IMAGE = Path.Combine(
-            AppContext.BaseDirectory, 
-            "resources", 
-            "DefaultImage.png");
-
         private const long FILE_BYTES_LIMIT = 49_500 * 1024L;
 
 
-        // Public
+        // PUBLIC
+
         public async Task Init(string botUsername)
         {
-            // Checking bot resources 
-            if (!File.Exists(PATH_TO_DEFAULT_IMAGE))
-                throw new FileNotFoundException("Default image not found", PATH_TO_DEFAULT_IMAGE);
-
             // Download manager initialization
             await _downloadManager.Init();
 
@@ -114,54 +106,19 @@ namespace Services
             }
         }
 
-        public async Task<ELoadingStatus> SendLoadingMenuProcess(
+        public async Task<Message> SendLoadingMenuAsync(
             ITelegramBotClient client, ChatId chatId, string url, ELanguage language)
         {
-            if (!IsInit) throw new InvalidOperationException("TelegramDownloadService isn't init");
+            // Key with link to download video
+            string linkToVideo = $"\nLINK: {url}";
 
-            // Download preview to temp and get info
-            if (await _downloadManager.DownloadToTempAsync(url, EDownloadType.Thumbnail) is not { } previewInfo)
-                return ELoadingStatus.NotValidLink;
+            // Text сaption
+            string caption =
+                $"\n\n{ReplyReadService.GetReply("DownloadInfoText", language)}" +
+                $"\n{linkToVideo}";
 
-            // Set variables and change to default image if filepath is null
-            var (filePath, title) =
-                (File.Exists(previewInfo.FilePath) ? previewInfo.FilePath : PATH_TO_DEFAULT_IMAGE,
-                previewInfo.FileTitle);
-
-            // Get input file
-            if (_downloadManager.GetInputFile((filePath, title)) is not { } inputFile)
-            {
-                _logger.Log("Input file is null", ELogStatus.Error);
-                return ELoadingStatus.Error;
-            }
-
-            // Dispose input file
-            try
-            {
-                // Key with link to download video
-                string linkToVideo = $"\nLINK: {url}";
-
-                // Text сaption
-                string caption =
-                    $"{title}" +
-                    $"\n\n{ReplyReadService.GetReply("DownloadInfoText", language)}" +
-                    $"\n{linkToVideo}";
-
-                await SendLoadingMenuAsync(client, chatId, inputFile, caption, language);
-
-                return ELoadingStatus.Successfully;
-            }
-            catch(Exception ex)
-            {
-                _logger.Log(ex.ToString(), ELogStatus.Warning);
-                return ELoadingStatus.Error;
-            }
-            finally
-            {
-                inputFile.Content.Dispose(); // Dispose filestream
-
-                DeleteTempFile(previewInfo.FilePath); // Clear temp file
-            }
+            return 
+                await SendMenuAsync(client, chatId, caption, language);  
         }
 
         public async Task<ELoadingStatus> DownloadSendProcessAsync(
@@ -215,11 +172,10 @@ namespace Services
 
         // PRIVATE
 
-        private static async Task<Message> SendLoadingMenuAsync(
-            ITelegramBotClient client, 
-            ChatId chatId, 
-            InputFile inputFile,
-            string caption, 
+        private static async Task<Message> SendMenuAsync(
+            ITelegramBotClient client,
+            ChatId chatId,
+            string text,
             ELanguage language)
         {
             // Inline keyboard
@@ -227,17 +183,16 @@ namespace Services
 
             // Send loading menu to user
             return await MessageService.SendButtonMenu(
-                client, 
-                chatId, 
-                inputFile, 
-                caption, 
+                client,
+                chatId,
+                text,
                 inlineKeyboard);
         }
-        
+
         private async Task<Message> SendLoadedAsync(
-            ITelegramBotClient client, 
-            ChatId chatId, 
-            InputFile inputFile, 
+            ITelegramBotClient client,
+            ChatId chatId,
+            InputFile inputFile,
             EDownloadType downloadType)
         {
             var caption = $"@{_botUsername}";
@@ -245,13 +200,13 @@ namespace Services
             // Return loaded media
             return downloadType switch
             {
-                EDownloadType.Thumbnail =>  
+                EDownloadType.Thumbnail =>
                 await client.SendPhoto(chatId, inputFile, caption),
 
-                EDownloadType.Video =>     
+                EDownloadType.Video =>
                 await client.SendVideo(chatId, inputFile, caption),
 
-                EDownloadType.Audio => 
+                EDownloadType.Audio =>
                 await client.SendAudio(chatId, inputFile, caption),
 
                 _ => throw new ArgumentException("Unknown download type", nameof(downloadType)),

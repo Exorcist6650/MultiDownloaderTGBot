@@ -76,7 +76,7 @@ namespace TelegramBot
             // Variables
             if (callback?.Message is not { } message) return;
             if (callback?.From.Id is not { } chatId) return;
-            if (message.Caption is not { } caption) return;
+            if (message.Text is not { } caption) return;
 
             // User language
             var lang = callback.From.LanguageCode?.ToLowerInvariant() switch
@@ -99,36 +99,28 @@ namespace TelegramBot
 
                 // Lock object
                 var semaphore = _downloadBlockers.GetOrAdd(lockKey, _ => new SemaphoreSlim(1, 1));
-
-                // Case download is lock
-                if (!semaphore.Wait(0))
-                {
-                    try
-                    {
-                        // Answer for UI
-                        await client.AnswerCallbackQuery(
-                            callback.Id,
-                            ReplyReadService.GetReply("ButtonLock", lang),
-                            showAlert: true);
-
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.Log(ex.ToString(), ELogStatus.Warning);
-                    }
-                    return;
-                }
+                var semaphoreAcquired = false;
 
                 try
                 {
-                    // Answer for UI
-                    await client.AnswerCallbackQuery(callback.Id, "✨");
-
                     switch (callback?.Data)
                     {
                         // Download video
                         case "action:video":
 
+                            // Try to lock
+                            if (!semaphore.Wait(0))
+                            {
+                                // Case download is locked
+                                await LockAnswerAsync(client, callback.Id, lang);
+                                return;
+                            }
+                            semaphoreAcquired = true; // Lock 
+
+                            // Answer for UI
+                            await client.AnswerCallbackQuery(callback.Id, "✨");
+
+                            // Run process
                             await _telegramDownloadService.DownloadSendVideoProcess(
                                 client,
                                 chatId,
@@ -138,6 +130,20 @@ namespace TelegramBot
 
                         // Download audio
                         case "action:audio":
+
+                            // Try to lock
+                            if (!semaphore.Wait(0))
+                            {
+                                // Case download is locked
+                                await LockAnswerAsync(client, callback.Id, lang);
+                                return;
+                            }
+                            semaphoreAcquired = true; // Lock 
+
+                            // Answer for UI
+                            await client.AnswerCallbackQuery(callback.Id, "✨");
+
+                            // Run process
                             await _telegramDownloadService.DownloadSendAudioProcess(
                                 client,
                                 chatId,
@@ -159,11 +165,16 @@ namespace TelegramBot
                 }
                 finally
                 {
-                    semaphore.Release(); // Unlock downloading
+                    // Unlock downloading
+                    if (semaphoreAcquired)
+                    {
+                        semaphore.Release(); 
 
-                    // Clear dictionary (GC will clear an object automaticly)
-                    _downloadBlockers.TryRemove(new KeyValuePair<string, SemaphoreSlim>(
-                        lockKey, semaphore));
+                        // Clear dictionary (GC will clear an object automaticly)
+                        _downloadBlockers.TryRemove(new KeyValuePair<string, SemaphoreSlim>(
+                            lockKey, semaphore));
+                    }    
+
                 }
             }
         }
@@ -195,14 +206,8 @@ namespace TelegramBot
             if (searchMessage is not null)
             {
                 // Sending load menu
-                var loadResult = await _telegramDownloadService.SendLoadingMenuProcess(
+                await _telegramDownloadService.SendLoadingMenuAsync(
                     client, chatId, message.Text, language);
-
-                // If problems
-                if (loadResult == ELoadingStatus.NotValidLink)
-                    // Bot answer to not valid link
-                    await MessageService.Send(client, chatId, new Message
-                    { Text = ReplyReadService.GetReply("NotValidLink", language) }, _logger);
 
                 // Delete searching message
                 await MessageService.Remove(client, chatId, searchMessage, _logger);
@@ -224,6 +229,23 @@ namespace TelegramBot
                 return false; // If is not a command
 
             return true; // If text is a command
+        }
+
+        private async Task LockAnswerAsync(ITelegramBotClient client, string queryId, ELanguage language)
+        {
+            try
+            {
+                // Answer for UI
+                await client.AnswerCallbackQuery(
+                    queryId,
+                    ReplyReadService.GetReply("ButtonLock", language),
+                    showAlert: true);
+
+            }
+            catch (Exception ex)
+            {
+                _logger.Log(ex.ToString(), ELogStatus.Warning);
+            }
         }
     };
 }
